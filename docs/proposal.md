@@ -29,13 +29,14 @@ Access Management, and Usage Analytics of an Existing Digital Product.
 У постановці задачі власник готового продукту виступає замовником платформи,
 яка забезпечує його представлення, розповсюдження, керування підпискою,
 активацію доступу й підтримку користувачів. До появи програмної системи
-доступ продавався вручну через чати, а пізніше обліковувався монолітним
-застосунком. Саме **нинішня мікросервісна платформа** почала формуватися на
-Етапі 3 — як університетський репозиторій мікросервісів, що використовував
-предметну область продукту й попередній досвід. Це не було прямим перенесенням
-коду моноліту. На Етапі 4 цю навчальну систему еволюційно доведено до
-production-платформи з вебсайтом, а на Етапі 5 об'єднано застосунок, вебклієнт
-і ботів у спільний монорепозиторій. Кваліфікаційний проєкт продовжує цю
+доступ продавався вручну через чати, а пізніше монолітний застосунок закрив
+облік покупців, перевірку ключа з клієнта продукту й платні підписки; він
+працював у production близько року. Саме **нинішня мікросервісна платформа**
+почала формуватися на Етапі 3 як університетський репозиторій мікросервісів.
+Він використовував ту саму предметну область і попередній досвід, але не був
+прямим перенесенням коду моноліту. На Етапі 4 цю навчальну систему еволюційно
+доведено до production-платформи з вебсайтом, а на Етапі 5 об'єднано застосунок,
+вебклієнт і ботів у спільний монорепозиторій. Кваліфікаційний проєкт продовжує цю
 еволюцію від Етапу 3; попередні ручний і монолітний етапи є історичним
 контекстом і джерелом вимог. Окремі вебсторінки, канали купівлі, ключі та
 файли без спільного обліку ускладнювали шлях користувача від ознайомлення до
@@ -172,10 +173,12 @@ this qualification project.
 In the project scenario, the owner of the existing product acts as the client
 for a platform that presents and distributes the product, manages subscriptions
 and access activation, and supports users. Before software-based management,
-access was sold manually through chats and later tracked by a monolithic
-application. The **current microservice platform** began to take shape in
-Stage 3 as a university microservices repository based on the product domain
-and earlier experience. It was not a direct code port of the monolith. In
+access was sold manually through chats and later managed by a monolithic
+application. The monolith handled buyer records, key checks from the product
+client, and paid subscriptions; it ran in production for about a year. The
+**current microservice platform** began to take shape in Stage 3 as a
+university microservices repository based on the product domain and earlier
+experience. It was not a direct code port of the monolith. In
 Stage 4, this educational system evolved into a production platform with a
 website; in Stage 5, the application, web client, and bots were consolidated
 into one monorepository. The qualification project continues this evolution
