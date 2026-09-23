@@ -10,39 +10,47 @@
 ## 1. Попередня назва
 
 **Українською:** Розроблення мікросервісної платформи для розповсюдження,
-монетизації та аналізу використання freemium-продукту для гравців SA-MP.
+керування платним доступом та аналізу використання наявного цифрового продукту.
 
-**English:** Development of a Microservice Platform for Freemium Product
-Distribution, Monetization, and Usage Analytics for SA-MP Players.
+**English:** Development of a Microservice Platform for Distribution, Paid
+Access Management, and Usage Analytics of an Existing Digital Product.
 
 ## 2. Актуальність і проблема
 
-Предметна область проєкту — програмний помічник (хелпер) для гравців
-San Andreas Multiplayer (SA-MP), зокрема спільнот Arizona RP і Rodina RP.
-Помічник є завантажуваним програмним інструментом із безплатною версією та
-платним доступом до розширених можливостей (модель freemium). Незалежному
-розробнику такого
-продукту потрібна узгоджена система для його представлення, розповсюдження
-безплатної версії, пропонування платної підписки, активації доступу та
-підтримки користувачів. Окремі вебсторінки,
-канали купівлі, ліцензійні ключі й файли без спільного обліку ускладнюють
-шлях користувача від ознайомлення з продуктом до його використання.
-Розробнику також потрібні достовірні дані про запуски продукту та результати
-продажів, а користувачам — зрозумілий стан підписки й пристроїв у кабінеті.
+Предметна область проєкту — процеси розповсюдження, ліцензування,
+керування платним доступом та аналізу використання вже готових цифрових
+програмних продуктів. У цьому кейсі зовнішнім продуктом є завантажуваний
+програмний помічник (хелпер) для гравців San Andreas Multiplayer (SA-MP),
+зокрема спільнот Arizona RP і Rodina RP. Він існував понад два роки до
+створення нової платформи, має безплатну версію та платні можливості за
+моделлю freemium. Розроблення самого помічника **не входить** до цієї
+кваліфікаційної роботи.
 
-Інженерна задача полягає в узгодженій роботі сайту, завантажуваного клієнта,
-сервісів облікових записів, ліцензування, розповсюдження VIP-файлу,
-телеметрії та інтеграцій із зовнішніми каналами купівлі. Платформа показує
-агреговану публічну аналітику використання й продажів. Телеметрія зберігає
+У постановці задачі власник готового продукту виступає замовником платформи,
+яка забезпечує його представлення, розповсюдження, керування підпискою,
+активацію доступу й підтримку користувачів. Раніше для цього продукту
+використовувалася монолітна система; її досвід і вимоги враховано під час
+проєктування нової системи. Ця робота не заявляє створення помічника або
+прямого перенесення коду попереднього моноліту. Окремі вебсторінки, канали
+купівлі, ключі та файли без спільного обліку ускладнюють шлях користувача від
+ознайомлення до використання. Власнику також потрібні достовірні дані про
+запуски й продажі, а користувачам — зрозумілий стан підписки та пристроїв.
+
+Інженерна задача полягає в узгодженій роботі нової платформи з уже наявним
+цифровим продуктом: сайту, сервісів облікових записів, ліцензування,
+розповсюдження VIP-файлу, телеметрії та інтеграцій із зовнішніми каналами
+купівлі. Платформа показує агреговану публічну аналітику використання й
+продажів. Телеметрія зберігає
 ідентифікатор пристрою (HWID), тому в роботі потрібно розмежувати сирі дані,
 адміністративний доступ і поля публічних агрегатів, не стверджуючи повної
 анонімності.
 
 ## 3. Ідея та архітектура
 
-Робота спирається на чинну платформу MTG MODS для цього програмного помічника
-з безплатною версією та платною підпискою MTGVIP. Публічний сайт представляє
-продукт, пропонує безплатне завантаження для ПК і телефона з інструкціями,
+Об'єкт розроблення й аналізу — чинна платформа MTG MODS, створена для вже
+готового програмного помічника з безплатною версією та платною підпискою
+MTGVIP. Публічний сайт представляє продукт, пропонує безплатне завантаження
+для ПК і телефона з інструкціями,
 показує тарифи та зовнішні способи придбання, публікує агреговану аналітику
 використання й продажів. Особистий кабінет дає змогу активувати ключ,
 переглядати підписку, завантажувати VIP-файл і керувати пристроями. Розділ
@@ -64,10 +72,10 @@ Docker Compose. Telegram і Discord боти є зовнішніми інтег�
 асинхронною взаємодією через RabbitMQ. Це описує наявний код; подальші
 архітектурні зміни будуть позначені окремо від уже реалізованих можливостей.
 
-Термін «micro-SaaS» характеризує масштаб і модель незалежного продукту, а
-«мікросервісна» — архітектуру реалізації; ці поняття не є взаємозамінними.
-Завантажуваний хелпер і вебплатформа працюють разом, тому продукт не слід
-описувати як суто браузерний SaaS. Платформа показує платні пропозиції,
+Термін «micro-SaaS» може описувати модель сервісу навколо готового продукту, а
+«мікросервісна» — архітектуру платформи; ці поняття не є взаємозамінними.
+Платформа інтегрується з наявним завантажуваним помічником, тому її не слід
+видавати за розробку самого помічника. Платформа показує платні пропозиції,
 спрямовує до зовнішніх каналів купівлі та обліковує суму й канал операції,
 але сама не виконує банківський еквайринг. Telegram Stars проходить перевірку
 тарифу до підтвердження оплати; інші канали підтверджуються поза платформою
@@ -112,8 +120,10 @@ Docker Compose. Telegram і Discord боти є зовнішніми інтег�
 
 ## 6. Обсяг кваліфікаційної роботи
 
-Production-система вже працює. Кваліфікаційна робота має зафіксувати її
-архітектуру й перевірити інженерні властивості на відтворюваних сценаріях.
+Production-платформа вже працює. Кваліфікаційна робота стосується її
+архітектури, реалізації й перевірки інженерних властивостей на відтворюваних
+сценаріях; функціональність самого раніше створеного помічника не є предметом
+розроблення чи оцінювання.
 Для погодження з керівником запропоновано три напрями розвитку: автоматизовані
 тести та CI для критичних сценаріїв ліцензування; аналіз і посилення надійності
 асинхронної видачі VIP-файлу; вимірювання часу відповіді публічної аналітики
@@ -134,34 +144,44 @@ preliminary; substantive supervisor review is pending.
 
 ## 1. Preliminary title
 
-**Development of a Microservice Platform for Freemium Product Distribution,
-Monetization, and Usage Analytics.**
+**Development of a Microservice Platform for Distribution, Paid Access
+Management, and Usage Analytics of an Existing Digital Product.**
 
 ## 2. Relevance and problem statement
 
-The domain product is a downloadable software assistant (helper) for San
-Andreas Multiplayer (SA-MP) players, including the Arizona RP and Rodina RP
-communities. This software tool has a free edition and paid access to
-additional features: a freemium model. The developer needs a coherent system
-for presenting the
-product, distributing its free edition, offering a paid subscription,
-activating access, and supporting users. Disconnected web pages,
-purchase channels, licence keys, and downloadable files complicate the user
-journey from discovery to use. The developer also needs reliable usage and
-sales data, while users need a clear view of their subscription and devices.
+The domain covers the processes of distributing, licensing, managing paid
+access to, and analysing the use of existing digital software products. In
+this case, the external product is a downloadable software
+assistant (helper) for San Andreas Multiplayer (SA-MP) players, including the
+Arizona RP and Rodina RP communities. It existed for more than two years
+before the new platform and offers a free edition and paid features under a
+freemium model. Developing the assistant itself is **outside the scope** of
+this qualification project.
 
-The engineering problem is coordinating the website, downloadable client,
-identity, licensing, VIP-file distribution, telemetry services, and external
-purchase-channel integrations. The platform exposes aggregate public usage and
-sales analytics. The telemetry database stores device identifiers (HWIDs), so
+In the project scenario, the owner of the existing product acts as the client
+for the platform. The platform presents and distributes the product, manages
+subscriptions and access activation, and supports users. A previous monolithic
+system served this product; its experience and requirements informed the new
+design. This project does not claim to have built the assistant or directly
+migrated the old monolith's code. Disconnected pages, purchase channels,
+licence keys, and files complicate the user journey. The owner needs reliable
+usage and sales data, while users need a clear view of subscriptions and
+devices.
+
+The engineering problem is coordinating the new platform with the existing
+digital product through the website, identity, licensing, VIP-file
+distribution, telemetry services, and external purchase-channel integrations.
+The platform exposes aggregate public usage and sales analytics. The
+telemetry database stores device identifiers (HWIDs), so
 the work must distinguish raw records, administrative access, and fields
 returned in public aggregates without claiming complete anonymity.
 
 ## 3. System concept and architecture
 
-The project is based on the operating MTG MODS platform for this software
-assistant and its paid MTGVIP subscription. The public website presents the
-product, offers free PC and mobile downloads with installation
+The subject of development and analysis is the operating MTG MODS platform,
+built for the pre-existing software assistant and its paid MTGVIP
+subscription. The public website presents the product and offers free PC and
+mobile downloads with installation
 guides, lists paid plans and external purchase options, and publishes aggregate
 usage and sales analytics. In the personal dashboard, users can activate a key,
 view their subscription, download the VIP file, and manage devices. The
@@ -183,11 +203,11 @@ services, and asynchronous communication through RabbitMQ. This describes the
 existing code; future changes will be identified separately from implemented
 capabilities.
 
-“Micro-SaaS” describes the independent product's scale and business model;
-“microservice” describes its implementation architecture. These terms are not
-interchangeable. Because a downloadable helper works alongside the web
-platform, the product should not be described as browser-only SaaS. The
-platform lists paid offers, routes users to external purchase channels, and
+“Micro-SaaS” may describe the service model around the existing product;
+“microservice” describes the platform's implementation architecture. These
+terms are not interchangeable. The platform integrates with the pre-existing
+downloadable assistant; it does not constitute development of that assistant.
+The platform lists paid offers, routes users to external purchase channels, and
 records transaction amounts and channels, but does not process bank-card
 payments itself. Telegram Stars payments are checked against the current
 tariff before confirmation; other channels are confirmed outside the platform
@@ -233,8 +253,10 @@ and may require manual key issuance.
 
 ## 6. Project scope
 
-The production system is already in operation. The thesis will document its
-architecture and evaluate engineering properties using reproducible scenarios.
+The production platform is already in operation. The thesis will address its
+architecture, implementation, and engineering properties using reproducible
+scenarios. The previously developed assistant's functionality is outside the
+development and evaluation scope.
 Three development directions are proposed for supervisor review: automated
 tests and CI for critical licensing flows; analysis and improvement of the
 reliability of asynchronous VIP-file delivery; and load-based measurement of
