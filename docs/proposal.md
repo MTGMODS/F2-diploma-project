@@ -1,289 +1,139 @@
 # Thesis Proposal
 
-**Кваліфікаційний проєкт бакалавра** · Спеціальність F2 «Інженерія програмного
-забезпечення» (попередній шифр 121)
+**Кваліфікаційний проєкт бакалавра** · Спеціальність F2 «Інженерія програмного забезпечення» (попередній код 121)
 
-**Автор:** Маргер Богдан Євгенович ·
-**Науковий керівник:** Дмитращук Кристина Миколаївна ·
-**Статус теми:** попередня, очікує змістовної верифікації керівником.
+**Автор:** Маргер Богдан Євгенович
+**Науковий керівник:** Дмитращук Кристина Миколаївна
+**Статус теми:** попередня; очікує змістовного погодження керівником.
 
 ## 1. Попередня назва
 
-**Українською:** Розроблення мікросервісної платформи для розповсюдження,
-керування платним доступом та аналізу використання наявного цифрового продукту.
+**Українською:** Розроблення micro-SaaS-платформи для розповсюдження, ліцензування та аналітики цифрового продукту на основі мікросервісної архітектури.
 
-**English:** Development of a Microservice Platform for Distribution, Paid
-Access Management, and Usage Analytics of an Existing Digital Product.
+**English:** Development of a Micro-SaaS Platform for Digital Product Distribution, Licensing, and Analytics Using a Microservices Architecture.
 
 ## 2. Актуальність і проблема
 
-Предметна область проєкту — процеси розповсюдження, ліцензування,
-керування платним доступом та аналізу використання вже готових цифрових
-програмних продуктів. У цьому кейсі зовнішнім продуктом є завантажуваний
-програмний помічник (хелпер) для гравців San Andreas Multiplayer (SA-MP),
-зокрема спільнот Arizona RP і Rodina RP. Він існував понад два роки до
-створення нової платформи, має безплатну версію та платні можливості за
-моделлю freemium. Розроблення самого помічника **не входить** до цієї
-кваліфікаційної роботи.
+Предметна область проєкту — надання вузькоспеціалізованого micro-SaaS-сервісу для управління цифровим продуктом: його розповсюдженням, підписками, ліцензіями, файлами доступу та аналітикою продажів і використання. У проєктному сценарії замовником є власник уже готового цифрового програмного продукту. Для конкретизації вимог розглядається завантажуваний помічник для гравців San Andreas Multiplayer (SA-MP), зокрема спільнот Arizona RP і Rodina RP. Помічник існував до створення нової платформи, має безплатну версію та платні можливості за моделлю freemium. Його розроблення не є метою кваліфікаційного проєкту.
 
-У постановці задачі власник готового продукту виступає замовником платформи,
-яка забезпечує його представлення, розповсюдження, керування підпискою,
-активацію доступу й підтримку користувачів. До появи програмної системи
-доступ продавався вручну через чати, а пізніше монолітний застосунок закрив
-облік покупців, перевірку ключа з клієнта продукту й платні підписки; він
-працював у production близько року. Саме **нинішня мікросервісна платформа**
-почала формуватися на Етапі 3 як університетський репозиторій мікросервісів.
-Він використовував ту саму предметну область і попередній досвід, але не був
-прямим перенесенням коду моноліту. На Етапі 4 цю навчальну систему еволюційно
-доведено до production-платформи з вебсайтом, а на Етапі 5 об'єднано застосунок,
-вебклієнт і ботів у спільний монорепозиторій. Кваліфікаційний проєкт продовжує цю
-еволюцію від Етапу 3; попередні ручний і монолітний етапи є історичним
-контекстом і джерелом вимог. Окремі вебсторінки, канали купівлі, ключі та
-файли без спільного обліку ускладнювали шлях користувача від ознайомлення до
-використання. Власнику потрібні достовірні дані про запуски й продажі, а
-користувачам — зрозумілий стан підписки та пристроїв.
+До появи нової платформи замовник продавав доступ вручну через чати, а потім використовував монолітну систему обліку продажів і доступу. Частковий аналіз її функцій та обмежень, разом із запитом замовника, дає вимоги до нової інфраструктури: облік покупців, сум і каналів продажу; створення й перевірка ліцензійних ключів із клієнта цифрового продукту; керування строком підписки; підтримка різних каналів отримання ключа; перевірка права на платні файли; облік продажів і базова публічна статистика. Код попередньої системи слугує джерелом для аналізу та вимог, але новий backend не є простим перенесенням моноліту.
 
-Інженерна задача полягає в узгодженій роботі нової платформи з уже наявним
-цифровим продуктом: сайту, сервісів облікових записів, ліцензування,
-розповсюдження VIP-файлу, телеметрії та інтеграцій із зовнішніми каналами
-купівлі. Платформа показує агреговану публічну аналітику використання й
-продажів. Телеметрія зберігає
-ідентифікатор пристрою (HWID), тому в роботі потрібно розмежувати сирі дані,
-адміністративний доступ і поля публічних агрегатів, не стверджуючи повної
-анонімності.
+На Етапі 3 розпочалася розробка нової системи: у межах університетських робіт із мікросервісної архітектури створено MVP backend для цієї предметної області. Подальші лабораторні й проєктні роботи розвинули його: на Етапі 4 систему адаптовано для production, доповнено вебсайтом, кабінетом, керуванням користувачами, ліцензуванням, розповсюдженням файлів і телеметрією; на Етапі 5 вебклієнт, backend і ботів об'єднано в монорепозиторій. Отже, предмет диплома — саме еволюція нової micro-SaaS-платформи від MVP мікросервісного backend до production-системи. Ручний процес і моноліт є вихідним станом та джерелом вимог; готовий помічник — продуктом, для якого будується платформа.
+
+Інженерна проблема полягає в перенесенні потрібних бізнес-сценаріїв з обмеженої системи продажів у розподілену платформу та в узгодженні між її сервісами облікових записів, підписок, ліцензій, перевірок пристроїв, видачі файлів, телеметрії й зовнішніх каналів придбання. На відміну від початкового моноліту, нова платформа також надає особистий кабінет, розповсюджує безплатні версії, видає обмежені в часі VIP-файли та формує відкриті агрегати використання й продажів. Сайт спрямовує користувача до зовнішніх каналів оплати та обліковує дані операцій, але сам не здійснює банківський еквайринг.
 
 ## 3. Ідея та архітектура
 
-Об'єкт розроблення й аналізу — мікросервісна платформа MTG MODS, започаткована
-на Етапі 3 та розвинена на Етапах 4–5 до чинної production-системи для вже
-готового програмного помічника з безплатною версією та платною підпискою
-MTGVIP. Публічний сайт представляє продукт, пропонує безплатне завантаження
-для ПК і телефона з інструкціями,
-показує тарифи та зовнішні способи придбання, публікує агреговану аналітику
-використання й продажів. Особистий кабінет дає змогу активувати ключ,
-переглядати підписку, завантажувати VIP-файл і керувати пристроями. Розділ
-акцій описує додаткові способи отримання підписки. Коренева сторінка сайту
-представляє автора та екосистему; це супровідна сторінка, а не окремий предмет
-кваліфікаційної роботи.
+Ідея роботи — micro-SaaS-платформа для власника цифрового продукту, яка об'єднує його вебпредставлення, розповсюдження файлів, керування платним доступом і пристроями, а також аналітику. Термін **micro-SaaS** тут описує модель вузькоспеціалізованого програмного сервісу для підтримки продукту; **мікросервісна архітектура** описує побудову самої платформи. Це різні характеристики однієї системи.
 
-Поточна система має чотири API-сервіси:
-ідентичності користувачів, ліцензування, телеметрії та розповсюдження. Сервіси
-ідентичності, ліцензування й телеметрії мають окремі бази PostgreSQL;
-розповсюдження обробляє тимчасові файли без власної бази даних. RabbitMQ
-використовується для асинхронних команд і запиту-відповіді під час формування
-файлу. Вебклієнт взаємодіє з API через nginx; контейнери запускаються через
-Docker Compose. Telegram і Discord боти є зовнішніми інтеграційними
-адаптерами.
+Продукт-кейс — готовий SA-MP помічник із безплатною версією та підпискою MTGVIP. Сайт представляє його, надає файли й інструкції для ПК та телефона, показує тарифи й переходи до зовнішніх способів придбання, а також публічну агреговану статистику. Особистий кабінет дає змогу входити через Telegram або Discord, активувати ключ, переглядати підписку, отримувати VIP-файл і керувати прив'язаними пристроями. Telegram і Discord боти виступають інтеграційними адаптерами. Головна сторінка автора є супровідною частиною сайту, а не окремим об'єктом розроблення.
 
-Архітектурний напрям — розподілена мікросервісна система з розподілом
-відповідальностей за доменами, окремими сховищами для стану трьох сервісів і
-асинхронною взаємодією через RabbitMQ. Це описує наявний код; подальші
-архітектурні зміни будуть позначені окремо від уже реалізованих можливостей.
-Еволюційний перехід від навчальної декомпозиції Етапу 3 до production-розгортання
-Етапів 4–5 є частиною історії та інженерного контексту кваліфікаційного проєкту.
+Еволюція системи у проєктному сценарії:
 
-Термін «micro-SaaS» може описувати модель сервісу навколо готового продукту, а
-«мікросервісна» — архітектуру платформи; ці поняття не є взаємозамінними.
-Платформа інтегрується з наявним завантажуваним помічником, тому її не слід
-видавати за розробку самого помічника. Платформа показує платні пропозиції,
-спрямовує до зовнішніх каналів купівлі та обліковує суму й канал операції,
-але сама не виконує банківський еквайринг. Telegram Stars проходить перевірку
-тарифу до підтвердження оплати; інші канали підтверджуються поза платформою
-й можуть потребувати ручної видачі ключа.
+- **Етапи 0–2 — вихідний стан і вимоги.** Ручне надання доступу через чати змінюється монолітом для обліку покупців, перевірки ключів із клієнта й керування підписками. Ця система працювала в production близько року. Її функції та обмеження використовуються для формування вимог.
+- **Етап 3 — MVP нового backend.** Університетський репозиторій мікросервісів започаткував нову реалізацію тієї самої предметної області. Навчальні роботи пройшли від модульного моноліту до декомпозиції на сервіси користувачів/ліцензування, генерації файлів та використання. Це старт нової платформи, а не окрема випадкова тема.
+- **Етап 4 — production-платформа.** MVP розвинуто й адаптовано для роботи з реальним продуктом: додано RabbitMQ, сервіси ідентичності та ліцензування, окремі бази PostgreSQL, вебклієнт і кабінет, публічну аналітику, інтеграції та розгортання через Docker Compose і nginx. Відбувся перехід чинного сервісу з SQLite-моноліту на нові сервіси й сховища.
+- **Етап 5 — консолідація.** Backend, вебклієнт і боти зібрано в одному репозиторії; продовжено узгодження контрактів і функцій платформи.
 
-## 4. Основні функції
+Поточна production-система містить чотири API-сервіси: user, license, usage і distribution. Сервіси user, license та usage мають окремі PostgreSQL бази; distribution обробляє тимчасові файли без власної бази даних. RabbitMQ забезпечує асинхронні команди та взаємодію запит-відповідь під час видачі файлу. Вебклієнт побудований на React і TypeScript, API проходять через nginx, контейнери запускаються Docker Compose. Це наявна реалізація; запропоновані подальші зміни позначаються окремо.
 
-1. **Представлення й безплатне розповсюдження.** Сторінка помічника містить
-   опис, скриншоти та перехід до завантаження Free-версії; для ПК і телефона
-   доступні файли та інструкції зі встановлення.
-2. **Тарифи й канали придбання.** Сторінка MTGVIP показує строки підписки,
-   переваги та зовнішні способи купівлі; ключ, отриманий через відповідний
-   канал, активується в кабінеті. Платформа не виконує банківський еквайринг.
-3. **Обліковий запис і кабінет.** Вхід через Telegram і Discord, підтримка
-   Telegram Mini App, прив’язування облікових записів і перегляд стану
-   підписки, ключа та історії доступу.
-4. **Платний доступ і пристрої.** Генерування й активація ліцензійних ключів,
-   контроль строку підписки, прив’язування HWID за тарифною квотою та
-   обмежене самостійне скидання пристроїв.
-5. **Видача VIP-версії.** Після перевірки доступу сервіс ліцензування надсилає
-   запит через RabbitMQ; сервіс розповсюдження формує тимчасовий файл із датою
-   завершення доступу й повертає посилання для завантаження.
-6. **Облік використання та відкрита аналітика.** API приймає події запуску;
-   вебсайт показує агреговані показники, зокрема динаміку, сервери, фракції,
-   пристрої та версії. Сирі HWID не належать до публічної відповіді.
-7. **Аналітика продажів та інтеграції.** Публічна сторінка показує агреговані
-   продажі, канали й тарифи; адміністративний API та Telegram/Discord-боти
-   підтримують видачу ключів, перевірку VIP-доступу й супровід користувачів.
+Основний напрям Додатка 1 до ЛР — розподілені системи та Cloud-Native мікросервісні архітектури. Micro-SaaS є сервісною моделлю платформи, а мікросервіси — її архітектурним рішенням. У дипломі аналізується перехід від вимог, сформованих частковим аналізом моноліту, через MVP backend до production-платформи.
+
+## 4. Функції платформи
+
+1. **Представлення та розповсюдження продукту:** сторінка з описом, зображеннями, безплатними файлами для ПК і телефона та інструкціями.
+2. **Тарифи й зовнішні канали придбання:** відображення вартості й умов MTGVIP, перенаправлення до каналів купівлі, облік джерела операції та активація отриманого ключа.
+3. **Обліковий запис і кабінет:** вхід через Telegram і Discord, прив'язування облікових записів, перегляд підписки, ключа та історії доступу.
+4. **Ліцензування й пристрої:** створення та активація ключів, перевірка строку дії, облік пристроїв за HWID і тарифними квотами.
+5. **Захищена видача платного файлу:** перевірка доступу та асинхронне формування тимчасового VIP-файлу із завершенням строку підписки.
+6. **Телеметрія та відкрита аналітика використання:** приймання подій запуску й показ агрегованих даних за часом, серверами, фракціями, пристроями та версіями. Сирі HWID не публікуються.
+7. **Аналітика продажів та інтеграції:** агреговані показники продажів, тарифів і каналів; адміністративний API та Telegram/Discord боти.
 
 ## 5. Технологічний стек
 
-| Категорія | Поточні технології |
+| Категорія | Реалізація |
 |---|---|
 | Мови | Python 3.12, TypeScript, SQL, Bash |
-| Архітектурні рішення | Декомпозиція за доменами, окремі БД сервісів, REST API, асинхронний обмін повідомленнями |
-| Серверні засоби | FastAPI, SQLAlchemy 2, Pydantic, HTTPX, aio-pika |
-| Вебклієнт | React 19, Vite, TanStack Query, Zustand, React Router, Tailwind CSS, Recharts, i18next |
+| Архітектура | Micro-SaaS-модель; доменна декомпозиція на мікросервіси; REST API; асинхронні повідомлення |
+| Backend | FastAPI, SQLAlchemy 2, Pydantic, HTTPX, aio-pika |
+| Web | React 19, Vite, TanStack Query, Zustand, React Router, Tailwind CSS, Recharts, i18next |
 | Інтеграції | python-telegram-bot, discord.py |
-| Бази даних | PostgreSQL 16: окремі екземпляри для user, license та usage сервісів |
-| Черга повідомлень | RabbitMQ 3.13, AMQP |
+| Бази даних | PostgreSQL 16: окремі сховища user, license та usage сервісів |
+| Брокер | RabbitMQ 3.13, AMQP |
 | Розгортання | Docker, Docker Compose, nginx |
 
-## 6. Обсяг кваліфікаційної роботи
+## 6. Обсяг і напрями інженерної роботи
 
-Кваліфікаційний проєкт описує та продовжує еволюцію платформи, розпочату на
-Етапі 3 з університетського репозиторію мікросервісів і доведену на Етапах 4–5
-до production-системи. Раніше створений SA-MP помічник залишається зовнішнім
-продуктом-кейсом; дипломна робота стосується платформи для нього. Вона має
-зафіксувати архітектурні рішення, шлях еволюції та перевірити інженерні
-властивості на відтворюваних сценаріях.
-Для погодження з керівником запропоновано три напрями розвитку: автоматизовані
-тести та CI для критичних сценаріїв ліцензування; аналіз і посилення надійності
-асинхронної видачі VIP-файлу; вимірювання часу відповіді публічної аналітики
-під навантаженням. Конкретний обсяг реалізації й критерії перевірки ще мають
-бути затверджені. Тести, CI та навантажувальні перевірки не подано як уже
-реалізовані можливості.
+Проєкт охоплює формування вимог на основі часткового аналізу попередньої системи, розроблення MVP нового мікросервісного backend у межах Етапу 3 та подальшу еволюцію до production micro-SaaS-платформи на Етапах 4–5. Поточна система є результатом цієї поетапної розробки й водночас основою для аналізу в дипломі.
+
+Для погодження з керівником запропоновано перевірювані подальші задачі: автоматизувати тести критичних сценаріїв ключів, підписок і HWID; оцінити надійність асинхронної видачі файлу при повторних запитах, затримках і відмовах; виміряти продуктивність API аналітики під контрольованим навантаженням; перевірити захист чутливих телеметричних даних і секретів. Це пропозиції для дипломної роботи, а не твердження про вже реалізовані перевірки. Конкретний обсяг і критерії оцінювання мають бути погоджені з керівником.
 
 ---
 
 # Thesis Proposal (English)
 
-**Bachelor’s qualification project** · F2 Software Engineering (previous code
-121)
+**Bachelor’s qualification project** · F2 Software Engineering (previous code 121)
 
-**Author:** Bohdan Marher ·
-**Supervisor:** Dmytrashchuk Krystyna Mykolaivna · **Topic status:**
-preliminary; substantive supervisor review is pending.
+**Author:** Bohdan Marher
+**Supervisor:** Krystyna Dmytrashchuk
+**Topic status:** preliminary; pending substantive supervisor approval.
 
 ## 1. Preliminary title
 
-**Development of a Microservice Platform for Distribution, Paid Access
-Management, and Usage Analytics of an Existing Digital Product.**
+**Development of a Micro-SaaS Platform for Digital Product Distribution, Licensing, and Analytics Using a Microservices Architecture.**
 
 ## 2. Relevance and problem statement
 
-The domain covers the processes of distributing, licensing, managing paid
-access to, and analysing the use of existing digital software products. In
-this case, the external product is a downloadable software
-assistant (helper) for San Andreas Multiplayer (SA-MP) players, including the
-Arizona RP and Rodina RP communities. It existed for more than two years
-before the new platform and offers a free edition and paid features under a
-freemium model. Developing the assistant itself is **outside the scope** of
-this qualification project.
+The subject area is the provision of a focused micro-SaaS service for managing a digital product: distribution, subscriptions, licences, access files, and sales and usage analytics. In the project scenario, the client is the owner of an existing digital software product. The case used to make the requirements concrete is a downloadable assistant for San Andreas Multiplayer (SA-MP) players, including the Arizona RP and Rodina RP communities. The assistant existed before the new platform and has a free edition and paid MTGVIP features. Developing the assistant itself is outside the scope of this qualification project.
 
-In the project scenario, the owner of the existing product acts as the client
-for a platform that presents and distributes the product, manages subscriptions
-and access activation, and supports users. Before software-based management,
-access was sold manually through chats and later managed by a monolithic
-application. The monolith handled buyer records, key checks from the product
-client, and paid subscriptions; it ran in production for about a year. The
-**current microservice platform** began to take shape in Stage 3 as a
-university microservices repository based on the product domain and earlier
-experience. It was not a direct code port of the monolith. In
-Stage 4, this educational system evolved into a production platform with a
-website; in Stage 5, the application, web client, and bots were consolidated
-into one monorepository. The qualification project continues this evolution
-from Stage 3; the earlier manual and monolithic stages provide historical
-context and requirements. Disconnected pages, purchase channels, licence
-keys, and files complicated the user journey. The owner needs reliable usage
-and sales data, while users need a clear view of subscriptions and devices.
+Before the new platform, the client sold access manually through chat groups and later used a monolithic system for sales and access management. A partial analysis of that system's functions and limitations, together with the client's request, yields requirements for the new infrastructure: buyer, amount, and sales-channel records; licence-key creation and validation from the digital product's client; subscription expiry management; support for multiple key-purchase channels; paid-file entitlement checks; sales records and basic public statistics. The previous system is a source for analysis and requirements; the new backend is not a direct port of the monolith.
 
-The engineering problem is coordinating the new platform with the existing
-digital product through the website, identity, licensing, VIP-file
-distribution, telemetry services, and external purchase-channel integrations.
-The platform exposes aggregate public usage and sales analytics. The
-telemetry database stores device identifiers (HWIDs), so
-the work must distinguish raw records, administrative access, and fields
-returned in public aggregates without claiming complete anonymity.
+Stage 3 began development of the new system: university coursework in microservices produced an MVP backend for this subject area. Later coursework and project work evolved it. In Stage 4, the system was adapted for production and extended with a website, dashboard, user management, licensing, file distribution, and telemetry. In Stage 5, the web client, backend, and bots were consolidated into a monorepository. The qualification project therefore covers the evolution of this new micro-SaaS platform from a microservice-backend MVP to a production system. The manual process and monolith are the initial state and source of requirements; the existing assistant is the product served by the platform.
 
-## 3. System concept and architecture
+The engineering problem is migrating required business flows from a limited sales system into a distributed platform and coordinating accounts, subscriptions, licences, device checks, file delivery, telemetry, and external purchase channels. Beyond the original monolith, the platform provides a user dashboard, free-edition distribution, time-limited VIP files, and public aggregate usage and sales analytics. The website routes users to external payment channels and records transaction information; it does not process bank-card payments itself.
 
-The subject of development and analysis is the MTG MODS microservice platform,
-started in Stage 3 and evolved in Stages 4–5 into the current production system
-for the pre-existing software assistant and its paid MTGVIP subscription. The
-public website presents the product and offers free PC and
-mobile downloads with installation
-guides, lists paid plans and external purchase options, and publishes aggregate
-usage and sales analytics. In the personal dashboard, users can activate a key,
-view their subscription, download the VIP file, and manage devices. The
-promotions section describes additional ways to receive a subscription. The
-website's root page introduces the creator and ecosystem; it is supporting
-context, not a separate subject of the thesis.
+## 3. Concept and architecture
 
-The current system contains four API services: user identity,
-licensing, usage telemetry, and distribution. The identity, licensing, and
-telemetry services each have a separate PostgreSQL database; the distribution
-service processes temporary files without its own database. RabbitMQ carries
-asynchronous commands and request-reply messages used during file generation.
-The web client reaches the APIs through nginx; Docker Compose runs the
-containers. Telegram and Discord bots act as external integration adapters.
+The project develops a micro-SaaS platform for a digital-product owner. It brings together web presentation, file distribution, paid-access and device management, and analytics. **Micro-SaaS** describes the focused service model around the product; **microservices** describe how the platform is architected. These are different properties of the same system.
 
-The architectural direction is a distributed microservice system with
-domain-oriented responsibilities, separate stores for the state of three
-services, and asynchronous communication through RabbitMQ. This describes the
-existing code; future changes will be identified separately from implemented
-capabilities. The evolution from the educational decomposition in Stage 3 to
-production deployment in Stages 4–5 is part of the qualification project's
-history and engineering context.
+The product case is an existing SA-MP assistant with a free edition and MTGVIP subscription. The website presents it, provides PC and mobile files and guides, lists plans and external purchase options, and publishes aggregate statistics. The user dashboard supports Telegram or Discord sign-in, key activation, subscription status, VIP-file downloads, and linked-device management. Telegram and Discord bots serve as integration adapters. The creator's home page supports the website but is not a separate development object.
 
-“Micro-SaaS” may describe the service model around the existing product;
-“microservice” describes the platform's implementation architecture. These
-terms are not interchangeable. The platform integrates with the pre-existing
-downloadable assistant; it does not constitute development of that assistant.
-The platform lists paid offers, routes users to external purchase channels, and
-records transaction amounts and channels, but does not process bank-card
-payments itself. Telegram Stars payments are checked against the current
-tariff before confirmation; other channels are confirmed outside the platform
-and may require manual key issuance.
+The system evolved through these stages:
 
-## 4. Core features
+- **Stages 0–2 — starting point and requirements.** Access was first sold manually through chats, then managed in a monolith that recorded buyers, checked keys from the product client, and handled subscriptions. It ran in production for about a year. Its functions and limitations inform requirements.
+- **Stage 3 — new backend MVP.** A university microservices repository began the new implementation for the same subject area. Coursework moved from a modular monolith to service decomposition for identity/licensing, file generation, and usage. This is the start of the current platform.
+- **Stage 4 — production platform.** The MVP was adapted and extended for production: RabbitMQ, identity and licensing services, separate PostgreSQL databases, a web client and dashboard, public analytics, integrations, and Docker Compose/nginx deployment. The operating service moved from the SQLite monolith to new services and stores.
+- **Stage 5 — consolidation.** Backend, web client, and bots were brought into one repository while platform contracts and functionality continued to evolve.
 
-1. **Product presentation and free distribution.** The assistant page offers a
-   description, screenshots, and a Free download; PC and mobile files come
-   with installation guides.
-2. **Plans and purchase channels.** The MTGVIP page lists subscription terms,
-   benefits, and external purchase methods. A key obtained through the chosen
-   channel can be activated in the dashboard; the platform does not perform
-   bank-card acquiring.
-3. **Accounts and dashboard.** Telegram and Discord sign-in, Telegram Mini App
-   support, linked accounts, and views of subscription status, key, and access
-   history.
-4. **Paid access and devices.** Licence-key generation and activation,
-   subscription expiry, tariff-based HWID quotas, and limited self-service
-   device resets.
-5. **VIP delivery.** After access verification, the licensing service requests
-   a temporary file through RabbitMQ; the distribution service adds the access
-   expiry date and returns a download link.
-6. **Usage records and open analytics.** The API receives launch events; the
-   website displays aggregate trends by server, faction, device, and version.
-   Raw HWIDs are not included in the public response.
-7. **Sales analytics and integrations.** The public website displays aggregate
-   sales, channels, and plans. Administrative APIs and Telegram/Discord bots
-   support key issuance, VIP checks, and user support.
+The current production system contains four API services: user, license, usage, and distribution. User, license, and usage have separate PostgreSQL databases; distribution handles temporary files without its own database. RabbitMQ carries asynchronous commands and request/reply messages for file delivery. The web client uses React and TypeScript; nginx routes API traffic; Docker Compose runs the containers. These are current implementation facts; proposed future changes are listed separately.
+
+The primary Appendix 1 direction for this project is distributed systems and Cloud-Native microservice architectures. Micro-SaaS is the platform's service model; microservices are its architectural choice. The thesis analyses the progression from requirements derived through partial monolith analysis, through the backend MVP, to the production platform.
+
+## 4. Platform functions
+
+1. **Product presentation and distribution:** product page, description, screenshots, free PC/mobile files, and guides.
+2. **Plans and external purchase channels:** MTGVIP terms, links to purchase channels, source records, and activation of the acquired key.
+3. **Accounts and dashboard:** Telegram and Discord sign-in, linked accounts, subscription and key status, and access history.
+4. **Licensing and devices:** key generation and activation, expiry checks, HWID records, and tariff-based device quotas.
+5. **Protected paid-file delivery:** access validation and asynchronous generation of a temporary VIP file with an expiry date.
+6. **Telemetry and open usage analytics:** launch-event intake and aggregate reporting by time, server, faction, device, and version. Raw HWIDs are not public.
+7. **Sales analytics and integrations:** aggregate sales, plan, and channel metrics; administrative API and Telegram/Discord bots.
 
 ## 5. Technology stack
 
-| Category | Current technologies |
+| Category | Implementation |
 |---|---|
 | Languages | Python 3.12, TypeScript, SQL, Bash |
-| Architectural decisions | Domain-oriented services, separate service databases, REST APIs, asynchronous messaging |
+| Architecture | Micro-SaaS model; domain-oriented microservices; REST APIs; asynchronous messaging |
 | Backend | FastAPI, SQLAlchemy 2, Pydantic, HTTPX, aio-pika |
-| Web client | React 19, Vite, TanStack Query, Zustand, React Router, Tailwind CSS, Recharts, i18next |
+| Web | React 19, Vite, TanStack Query, Zustand, React Router, Tailwind CSS, Recharts, i18next |
 | Integrations | python-telegram-bot, discord.py |
-| Databases | PostgreSQL 16: separate instances for user, license, and usage services |
-| Message broker | RabbitMQ 3.13, AMQP |
+| Databases | PostgreSQL 16: separate stores for user, license, and usage services |
+| Broker | RabbitMQ 3.13, AMQP |
 | Deployment | Docker, Docker Compose, nginx |
 
-## 6. Project scope
+## 6. Scope and engineering work
 
-The qualification project documents and continues the platform's evolution,
-which began as a university microservices repository in Stage 3 and reached
-production in Stages 4–5. The previously developed SA-MP assistant is the
-external product case; the thesis addresses the platform built for it. The
-work will document architectural decisions, the evolution path, and evaluate
-engineering properties using reproducible scenarios.
-Three development directions are proposed for supervisor review: automated
-tests and CI for critical licensing flows; analysis and improvement of the
-reliability of asynchronous VIP-file delivery; and load-based measurement of
-public analytics response time. The exact implementation scope and evaluation
-criteria still require approval. Tests, CI, and load tests are not presented
-as existing capabilities.
+The project covers requirements derived from a partial analysis of the previous system, development of a new microservice-backend MVP during Stage 3, and its subsequent evolution into a production micro-SaaS platform during Stages 4–5. The current system is the result of this staged development and the basis for the thesis analysis.
+
+Proposed, measurable engineering tasks for supervisor approval include automated tests for key, subscription, and HWID flows; reliability testing of asynchronous file delivery under duplicate requests, delays, and failures; controlled load measurement of analytics APIs; and review of protections for sensitive telemetry and secrets. These are thesis proposals, not claims that the checks have already been implemented. The exact scope and evaluation criteria require supervisor approval.
