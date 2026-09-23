@@ -10,16 +10,21 @@
 ## 1. Попередня назва
 
 **Українською:** Розроблення мікросервісної платформи для розповсюдження,
-монетизації та аналізу використання freemium-продукту.
+монетизації та аналізу використання freemium-продукту для гравців SA-MP.
 
 **English:** Development of a Microservice Platform for Freemium Product
-Distribution, Monetization, and Usage Analytics.
+Distribution, Monetization, and Usage Analytics for SA-MP Players.
 
 ## 2. Актуальність і проблема
 
-Незалежному розробнику freemium-продукту потрібна узгоджена система для
-представлення продукту, розповсюдження безплатної версії, пропонування платної
-підписки, активації доступу та підтримки користувачів. Окремі вебсторінки,
+Предметна область проєкту — програмний помічник (хелпер) для гравців
+San Andreas Multiplayer (SA-MP), зокрема спільнот Arizona RP і Rodina RP.
+Помічник є завантажуваним програмним інструментом із безплатною версією та
+платним доступом до розширених можливостей (модель freemium). Незалежному
+розробнику такого
+продукту потрібна узгоджена система для його представлення, розповсюдження
+безплатної версії, пропонування платної підписки, активації доступу та
+підтримки користувачів. Окремі вебсторінки,
 канали купівлі, ліцензійні ключі й файли без спільного обліку ускладнюють
 шлях користувача від ознайомлення з продуктом до його використання.
 Розробнику також потрібні достовірні дані про запуски продукту та результати
@@ -35,9 +40,9 @@ Distribution, Monetization, and Usage Analytics.
 
 ## 3. Ідея та архітектура
 
-Робота спирається на чинну платформу MTG MODS для завантажуваного хелпера з
-безплатною версією та платною підпискою MTGVIP. Публічний сайт представляє
-хелпер, пропонує безплатне завантаження для ПК і телефона з інструкціями,
+Робота спирається на чинну платформу MTG MODS для цього програмного помічника
+з безплатною версією та платною підпискою MTGVIP. Публічний сайт представляє
+продукт, пропонує безплатне завантаження для ПК і телефона з інструкціями,
 показує тарифи та зовнішні способи придбання, публікує агреговану аналітику
 використання й продажів. Особистий кабінет дає змогу активувати ключ,
 переглядати підписку, завантажувати VIP-файл і керувати пристроями. Розділ
@@ -70,7 +75,7 @@ Docker Compose. Telegram і Discord боти є зовнішніми інтег�
 
 ## 4. Основні функції
 
-1. **Представлення й безплатне розповсюдження.** Сторінка хелпера містить
+1. **Представлення й безплатне розповсюдження.** Сторінка помічника містить
    опис, скриншоти та перехід до завантаження Free-версії; для ПК і телефона
    доступні файли та інструкції зі встановлення.
 2. **Тарифи й канали придбання.** Сторінка MTGVIP показує строки підписки,
@@ -97,6 +102,7 @@ Docker Compose. Telegram і Discord боти є зовнішніми інтег�
 | Категорія | Поточні технології |
 |---|---|
 | Мови | Python 3.12, TypeScript, SQL, Bash |
+| Архітектурні рішення | Декомпозиція за доменами, окремі БД сервісів, REST API, асинхронний обмін повідомленнями |
 | Серверні засоби | FastAPI, SQLAlchemy 2, Pydantic, HTTPX, aio-pika |
 | Вебклієнт | React 19, Vite, TanStack Query, Zustand, React Router, Tailwind CSS, Recharts, i18next |
 | Інтеграції | python-telegram-bot, discord.py |
@@ -106,11 +112,14 @@ Docker Compose. Telegram і Discord боти є зовнішніми інтег�
 
 ## 6. Обсяг кваліфікаційної роботи
 
-Production-система вже працює; дипломна робота описує й обґрунтовує її
-інженерні рішення, перевіряє визначені властивості та фіксує обсяг подальших
-змін. Автоматизовані тести, CI, міграції баз даних, навантажувальне тестування
-та додаткові засоби спостережуваності розглядатимуться як запланована робота
-лише після остаточного визначення обсягу. Їх не подано як наявні можливості.
+Production-система вже працює. Кваліфікаційна робота має зафіксувати її
+архітектуру й перевірити інженерні властивості на відтворюваних сценаріях.
+Для погодження з керівником запропоновано три напрями розвитку: автоматизовані
+тести та CI для критичних сценаріїв ліцензування; аналіз і посилення надійності
+асинхронної видачі VIP-файлу; вимірювання часу відповіді публічної аналітики
+під навантаженням. Конкретний обсяг реалізації й критерії перевірки ще мають
+бути затверджені. Тести, CI та навантажувальні перевірки не подано як уже
+реалізовані можливості.
 
 ---
 
@@ -130,9 +139,13 @@ Monetization, and Usage Analytics.**
 
 ## 2. Relevance and problem statement
 
-An independent freemium product developer needs a coherent system for
-presenting the product, distributing its free edition, offering a paid
-subscription, activating access, and supporting users. Disconnected web pages,
+The domain product is a downloadable software assistant (helper) for San
+Andreas Multiplayer (SA-MP) players, including the Arizona RP and Rodina RP
+communities. This software tool has a free edition and paid access to
+additional features: a freemium model. The developer needs a coherent system
+for presenting the
+product, distributing its free edition, offering a paid subscription,
+activating access, and supporting users. Disconnected web pages,
 purchase channels, licence keys, and downloadable files complicate the user
 journey from discovery to use. The developer also needs reliable usage and
 sales data, while users need a clear view of their subscription and devices.
@@ -146,9 +159,9 @@ returned in public aggregates without claiming complete anonymity.
 
 ## 3. System concept and architecture
 
-The project is based on the operating MTG MODS platform for a downloadable
-helper with a free edition and a paid MTGVIP subscription. The public website
-presents the helper, offers free PC and mobile downloads with installation
+The project is based on the operating MTG MODS platform for this software
+assistant and its paid MTGVIP subscription. The public website presents the
+product, offers free PC and mobile downloads with installation
 guides, lists paid plans and external purchase options, and publishes aggregate
 usage and sales analytics. In the personal dashboard, users can activate a key,
 view their subscription, download the VIP file, and manage devices. The
@@ -182,7 +195,7 @@ and may require manual key issuance.
 
 ## 4. Core features
 
-1. **Product presentation and free distribution.** The helper page offers a
+1. **Product presentation and free distribution.** The assistant page offers a
    description, screenshots, and a Free download; PC and mobile files come
    with installation guides.
 2. **Plans and purchase channels.** The MTGVIP page lists subscription terms,
@@ -210,6 +223,7 @@ and may require manual key issuance.
 | Category | Current technologies |
 |---|---|
 | Languages | Python 3.12, TypeScript, SQL, Bash |
+| Architectural decisions | Domain-oriented services, separate service databases, REST APIs, asynchronous messaging |
 | Backend | FastAPI, SQLAlchemy 2, Pydantic, HTTPX, aio-pika |
 | Web client | React 19, Vite, TanStack Query, Zustand, React Router, Tailwind CSS, Recharts, i18next |
 | Integrations | python-telegram-bot, discord.py |
@@ -219,8 +233,11 @@ and may require manual key issuance.
 
 ## 6. Project scope
 
-The production system is already in operation. The thesis will describe and
-justify its engineering decisions, verify selected properties, and define any
-further work. Automated tests, CI, database migrations, load testing, and
-additional observability will be treated as planned work only after the final
-scope has been agreed; they are not presented as existing capabilities.
+The production system is already in operation. The thesis will document its
+architecture and evaluate engineering properties using reproducible scenarios.
+Three development directions are proposed for supervisor review: automated
+tests and CI for critical licensing flows; analysis and improvement of the
+reliability of asynchronous VIP-file delivery; and load-based measurement of
+public analytics response time. The exact implementation scope and evaluation
+criteria still require approval. Tests, CI, and load tests are not presented
+as existing capabilities.
