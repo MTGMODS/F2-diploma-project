@@ -28,13 +28,19 @@ Access Management, and Usage Analytics of an Existing Digital Product.
 
 У постановці задачі власник готового продукту виступає замовником платформи,
 яка забезпечує його представлення, розповсюдження, керування підпискою,
-активацію доступу й підтримку користувачів. Раніше для цього продукту
-використовувалася монолітна система; її досвід і вимоги враховано під час
-проєктування нової системи. Ця робота не заявляє створення помічника або
-прямого перенесення коду попереднього моноліту. Окремі вебсторінки, канали
-купівлі, ключі та файли без спільного обліку ускладнюють шлях користувача від
-ознайомлення до використання. Власнику також потрібні достовірні дані про
-запуски й продажі, а користувачам — зрозумілий стан підписки та пристроїв.
+активацію доступу й підтримку користувачів. До появи програмної системи
+доступ продавався вручну через чати, а пізніше обліковувався монолітним
+застосунком. Саме **нинішня мікросервісна платформа** почала формуватися на
+Етапі 3 — як університетський репозиторій мікросервісів, що використовував
+предметну область продукту й попередній досвід. Це не було прямим перенесенням
+коду моноліту. На Етапі 4 цю навчальну систему еволюційно доведено до
+production-платформи з вебсайтом, а на Етапі 5 об'єднано застосунок, вебклієнт
+і ботів у спільний монорепозиторій. Кваліфікаційний проєкт продовжує цю
+еволюцію від Етапу 3; попередні ручний і монолітний етапи є історичним
+контекстом і джерелом вимог. Окремі вебсторінки, канали купівлі, ключі та
+файли без спільного обліку ускладнювали шлях користувача від ознайомлення до
+використання. Власнику потрібні достовірні дані про запуски й продажі, а
+користувачам — зрозумілий стан підписки та пристроїв.
 
 Інженерна задача полягає в узгодженій роботі нової платформи з уже наявним
 цифровим продуктом: сайту, сервісів облікових записів, ліцензування,
@@ -47,7 +53,8 @@ Access Management, and Usage Analytics of an Existing Digital Product.
 
 ## 3. Ідея та архітектура
 
-Об'єкт розроблення й аналізу — чинна платформа MTG MODS, створена для вже
+Об'єкт розроблення й аналізу — мікросервісна платформа MTG MODS, започаткована
+на Етапі 3 та розвинена на Етапах 4–5 до чинної production-системи для вже
 готового програмного помічника з безплатною версією та платною підпискою
 MTGVIP. Публічний сайт представляє продукт, пропонує безплатне завантаження
 для ПК і телефона з інструкціями,
@@ -71,6 +78,8 @@ Docker Compose. Telegram і Discord боти є зовнішніми інтег�
 відповідальностей за доменами, окремими сховищами для стану трьох сервісів і
 асинхронною взаємодією через RabbitMQ. Це описує наявний код; подальші
 архітектурні зміни будуть позначені окремо від уже реалізованих можливостей.
+Еволюційний перехід від навчальної декомпозиції Етапу 3 до production-розгортання
+Етапів 4–5 є частиною історії та інженерного контексту кваліфікаційного проєкту.
 
 Термін «micro-SaaS» може описувати модель сервісу навколо готового продукту, а
 «мікросервісна» — архітектуру платформи; ці поняття не є взаємозамінними.
@@ -120,10 +129,12 @@ Docker Compose. Telegram і Discord боти є зовнішніми інтег�
 
 ## 6. Обсяг кваліфікаційної роботи
 
-Production-платформа вже працює. Кваліфікаційна робота стосується її
-архітектури, реалізації й перевірки інженерних властивостей на відтворюваних
-сценаріях; функціональність самого раніше створеного помічника не є предметом
-розроблення чи оцінювання.
+Кваліфікаційний проєкт описує та продовжує еволюцію платформи, розпочату на
+Етапі 3 з університетського репозиторію мікросервісів і доведену на Етапах 4–5
+до production-системи. Раніше створений SA-MP помічник залишається зовнішнім
+продуктом-кейсом; дипломна робота стосується платформи для нього. Вона має
+зафіксувати архітектурні рішення, шлях еволюції та перевірити інженерні
+властивості на відтворюваних сценаріях.
 Для погодження з керівником запропоновано три напрями розвитку: автоматизовані
 тести та CI для критичних сценаріїв ліцензування; аналіз і посилення надійності
 асинхронної видачі VIP-файлу; вимірювання часу відповіді публічної аналітики
@@ -159,14 +170,19 @@ freemium model. Developing the assistant itself is **outside the scope** of
 this qualification project.
 
 In the project scenario, the owner of the existing product acts as the client
-for the platform. The platform presents and distributes the product, manages
-subscriptions and access activation, and supports users. A previous monolithic
-system served this product; its experience and requirements informed the new
-design. This project does not claim to have built the assistant or directly
-migrated the old monolith's code. Disconnected pages, purchase channels,
-licence keys, and files complicate the user journey. The owner needs reliable
-usage and sales data, while users need a clear view of subscriptions and
-devices.
+for a platform that presents and distributes the product, manages subscriptions
+and access activation, and supports users. Before software-based management,
+access was sold manually through chats and later tracked by a monolithic
+application. The **current microservice platform** began to take shape in
+Stage 3 as a university microservices repository based on the product domain
+and earlier experience. It was not a direct code port of the monolith. In
+Stage 4, this educational system evolved into a production platform with a
+website; in Stage 5, the application, web client, and bots were consolidated
+into one monorepository. The qualification project continues this evolution
+from Stage 3; the earlier manual and monolithic stages provide historical
+context and requirements. Disconnected pages, purchase channels, licence
+keys, and files complicated the user journey. The owner needs reliable usage
+and sales data, while users need a clear view of subscriptions and devices.
 
 The engineering problem is coordinating the new platform with the existing
 digital product through the website, identity, licensing, VIP-file
@@ -178,9 +194,10 @@ returned in public aggregates without claiming complete anonymity.
 
 ## 3. System concept and architecture
 
-The subject of development and analysis is the operating MTG MODS platform,
-built for the pre-existing software assistant and its paid MTGVIP
-subscription. The public website presents the product and offers free PC and
+The subject of development and analysis is the MTG MODS microservice platform,
+started in Stage 3 and evolved in Stages 4–5 into the current production system
+for the pre-existing software assistant and its paid MTGVIP subscription. The
+public website presents the product and offers free PC and
 mobile downloads with installation
 guides, lists paid plans and external purchase options, and publishes aggregate
 usage and sales analytics. In the personal dashboard, users can activate a key,
@@ -201,7 +218,9 @@ The architectural direction is a distributed microservice system with
 domain-oriented responsibilities, separate stores for the state of three
 services, and asynchronous communication through RabbitMQ. This describes the
 existing code; future changes will be identified separately from implemented
-capabilities.
+capabilities. The evolution from the educational decomposition in Stage 3 to
+production deployment in Stages 4–5 is part of the qualification project's
+history and engineering context.
 
 “Micro-SaaS” may describe the service model around the existing product;
 “microservice” describes the platform's implementation architecture. These
@@ -253,10 +272,12 @@ and may require manual key issuance.
 
 ## 6. Project scope
 
-The production platform is already in operation. The thesis will address its
-architecture, implementation, and engineering properties using reproducible
-scenarios. The previously developed assistant's functionality is outside the
-development and evaluation scope.
+The qualification project documents and continues the platform's evolution,
+which began as a university microservices repository in Stage 3 and reached
+production in Stages 4–5. The previously developed SA-MP assistant is the
+external product case; the thesis addresses the platform built for it. The
+work will document architectural decisions, the evolution path, and evaluate
+engineering properties using reproducible scenarios.
 Three development directions are proposed for supervisor review: automated
 tests and CI for critical licensing flows; analysis and improvement of the
 reliability of asynchronous VIP-file delivery; and load-based measurement of
