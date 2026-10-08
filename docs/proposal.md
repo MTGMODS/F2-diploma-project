@@ -14,9 +14,9 @@
 
 ## 2. Актуальність і проблема
 
-Предметна область проєкту — надання вузькоспеціалізованого micro-SaaS-сервісу для управління цифровим продуктом: його розповсюдженням, підписками, ліцензіями, файлами доступу та аналітикою продажів і використання. У проєктному сценарії замовником є власник уже готового цифрового програмного продукту. Для конкретизації вимог розглядається завантажуваний помічник для гравців San Andreas Multiplayer (SA-MP), зокрема спільнот Arizona RP і Rodina RP. Помічник існував до створення нової платформи, має безплатну версію та платні можливості за моделлю freemium. Його розроблення не є метою кваліфікаційного проєкту.
+Предметна область проєкту — надання вузькоспеціалізованого micro-SaaS-сервісу для управління цифровим продуктом: його розповсюдженням, підписками, ліцензіями, файлами доступу та аналітикою продажів і використання. У проєктному сценарії замовником є власник уже готового цифрового програмного продукту. Для конкретизації вимог розглядається завантажуваний помічник для гравців San Andreas Multiplayer (SA-MP), зокрема спільнот Arizona RP і Rodina RP. Помічник є готовим зовнішнім продуктом, має безплатну версію та платні можливості за моделлю freemium. Його розроблення не є метою кваліфікаційного проєкту.
 
-Вихідною системою для визначення вимог є наявний моноліт, який використовувався для обліку продажів і керування доступом до готового продукту. Його початковий стан збережено в новому репозиторії як `v0.0.0`, щоб зафіксувати перелік функцій і правил, які власник продукту просив врахувати в окремій платформі. Серед таких вимог — збереження сумісності ліцензійного ключа та підтримка прив’язування облікових записів через Telegram, Discord або обидва канали. Вихідна система є референсом для вимог, а не предметом розроблення; нова платформа не описується як просте копіювання її коду.
+Вихідною системою для визначення вимог є наявний моноліт, який використовувався для обліку продажів і керування доступом до готового продукту. Аналіз його функцій дає змогу сформувати перелік правил і сценаріїв, які потрібно зберегти в новій платформі. Серед таких вимог — збереження сумісності ліцензійного ключа та підтримка прив’язування облікових записів через Telegram, Discord або обидва канали. Вихідна система є референсом для вимог, а не предметом розроблення; нова платформа не описується як просте копіювання її коду.
 
 Інженерна проблема полягає у створенні окремої розподіленої платформи, яка узгоджує облікові записи, підписки, ліцензії, перевірки пристроїв, видачу файлів, телеметрію та зовнішні канали придбання. Платформа надає особистий кабінет, розповсюджує безплатну версію, видає платні файли відповідно до чинної підписки та формує відкриті агрегати використання й продажів. Сайт спрямовує користувача до зовнішніх каналів оплати й обліковує отримані дані про операції, але сам не здійснює банківський еквайринг.
 
@@ -28,7 +28,7 @@
 
 Архітектура платформи декомпонує функції облікових записів, ліцензування, використання продукту та розповсюдження файлів між окремими API-сервісами. Обмін із клієнтом і вебзастосунком відбувається через REST API; для частини міжсервісних сценаріїв використовується RabbitMQ. Така побудова дає змогу окремо визначати відповідальність компонентів і керувати пов’язаними даними, зберігаючи спільні бізнес-сценарії продукту.
 
-Поточна production-система містить чотири API-сервіси: user, license, usage і distribution. Сервіси user, license та usage мають окремі PostgreSQL бази; distribution обробляє тимчасові файли без власної бази даних. RabbitMQ забезпечує асинхронні команди та взаємодію запит-відповідь під час видачі файлу. Вебклієнт побудований на React і TypeScript, API проходять через nginx, контейнери запускаються Docker Compose. Це наявна реалізація; запропоновані подальші зміни позначаються окремо.
+Запропонована архітектура передбачає чотири API-сервіси: user, license, usage і distribution. Сервіси user, license та usage мають окремі PostgreSQL бази; distribution обробляє тимчасові файли без власної бази даних. RabbitMQ забезпечує асинхронні команди та взаємодію запит-відповідь під час видачі файлу. Для вебклієнта передбачено React і TypeScript, API проходять через nginx, контейнери запускаються Docker Compose. Наведений стек визначає технологічну основу розроблення платформи.
 
 Основний напрям Додатка 1 до ЛР — розподілені системи та Cloud-Native мікросервісні архітектури: платформа має сервіси з окремими відповідальностями й сховищами даних та асинхронну взаємодію через RabbitMQ. AI & Data Engineering, Application Security & DevSecOps і DevOps & Quality Engineering дотичні до аналітики, захисту й перевірки якості, але не визначають основну архітектурну задачу роботи. Micro-SaaS є вузькою сервісною моделлю, а мікросервіси описують спосіб побудови платформи.
 
@@ -44,7 +44,7 @@
 
 ## 5. Технологічний стек
 
-| Категорія | Реалізація |
+| Категорія | Запропоновані засоби |
 |---|---|
 | Мови | Python 3.12, TypeScript, SQL, Bash |
 | Архітектурні патерни та інтерфейси | Доменна декомпозиція на мікросервіси; REST API; асинхронні повідомлення; взаємодія запит-відповідь |
@@ -57,9 +57,9 @@
 
 ## 6. Обсяг і напрями інженерної роботи
 
-Проєкт охоплює аналіз вимог, сформованих за попередньою системою та побажаннями власника готового продукту, і дослідження створеної для нього micro-SaaS-платформи. Основний інженерний фокус — обґрунтування мікросервісної декомпозиції та взаємодії компонентів, механізмів ліцензування й підписок, прив’язування облікових записів і пристроїв, видачі файлів, інтеграцій та аналітики.
+Проєкт охоплює аналіз вимог, сформованих за попередньою системою та побажаннями власника готового продукту, а також проєктування, програмну реалізацію та перевірку нової micro-SaaS-платформи. Основний інженерний фокус — обґрунтування мікросервісної декомпозиції та взаємодії компонентів, механізмів ліцензування й підписок, прив’язування облікових записів і пристроїв, видачі файлів, інтеграцій та аналітики.
 
-Для погодження з керівником запропоновано перевірювані подальші задачі: автоматизувати тести критичних сценаріїв ключів, підписок і HWID; оцінити надійність асинхронної видачі файлу при повторних запитах, затримках і відмовах; виміряти продуктивність API аналітики під контрольованим навантаженням; перевірити захист чутливих телеметричних даних і секретів. Це пропозиції для дипломної роботи, а не твердження про вже реалізовані перевірки. Конкретний обсяг і критерії оцінювання мають бути погоджені з керівником.
+Для погодження з керівником запропоновано перевірювані задачі: автоматизувати тести критичних сценаріїв ключів, підписок і HWID; оцінити надійність асинхронної видачі файлу при повторних запитах, затримках і відмовах; виміряти продуктивність API аналітики під контрольованим навантаженням; перевірити захист чутливих телеметричних даних і секретів. Це пропозиції для дипломної роботи, а не твердження про вже реалізовані перевірки. Конкретний обсяг і критерії оцінювання мають бути погоджені з керівником.
 
 ---
 
@@ -77,9 +77,9 @@
 
 ## 2. Relevance and problem statement
 
-The subject area is a focused micro-SaaS platform for a completed digital product: its presentation and distribution, subscription and licence management, access files, and sales and usage analytics. In the project scenario, the client is the owner of an existing digital software product. The case used to make the requirements concrete is a downloadable assistant for San Andreas Multiplayer (SA-MP) players, including the Arizona RP and Rodina RP communities. The assistant existed before the new platform and has a free edition and paid MTGVIP features. Developing the assistant itself is outside the scope of this qualification project.
+The subject area is a focused micro-SaaS platform for a completed digital product: its presentation and distribution, subscription and licence management, access files, and sales and usage analytics. In the project scenario, the client is the owner of an existing digital software product. The case used to make the requirements concrete is a downloadable assistant for San Andreas Multiplayer (SA-MP) players, including the Arizona RP and Rodina RP communities. The assistant is an existing external product with a free edition and paid MTGVIP features. Developing the assistant itself is outside the scope of this qualification project.
 
-The previous system used as the requirements baseline was a monolith for recording sales and managing access to the completed product. Its initial state was preserved in the new repository as `v0.0.0` to capture the features and rules the product owner asked to account for in a separate platform. These include preserving licence-key compatibility and supporting account linking through Telegram, Discord, or both channels. The previous system is a reference for requirements, not the subject of development; the new platform is not described as a simple copy of its code.
+The previous system used as the requirements baseline was a monolith for recording sales and managing access to the completed product. Analysis of its functions identifies the rules and scenarios that must be retained in the new platform. These include preserving licence-key compatibility and supporting account linking through Telegram, Discord, or both channels. The previous system is a reference for requirements, not the subject of development; the new platform is not described as a simple copy of its code.
 
 The engineering problem is building a separate distributed platform that coordinates accounts, subscriptions, licences, device checks, file delivery, telemetry, and external purchase channels. The platform provides a user dashboard, free-edition distribution, paid files subject to an active subscription, and public aggregate usage and sales analytics. The website routes users to external payment channels and records transaction information; it does not process bank-card payments itself.
 
@@ -89,9 +89,9 @@ The project develops a micro-SaaS platform for a digital-product owner. It bring
 
 The product case is an existing SA-MP assistant with a free edition and MTGVIP subscription. The website presents it, provides PC and mobile files and guides, lists plans and external purchase options, and publishes aggregate statistics. The user dashboard supports Telegram or Discord sign-in, key activation, subscription status, VIP-file downloads, and linked-device management. Telegram and Discord bots serve as integration adapters. The creator's home page supports the website but is not a separate development object.
 
-The previous monolithic system is used as a functional reference for the new platform. Its initial state was preserved in the new repository as `v0.0.0` to make the existing feature set available when formulating requirements. The product owner requested that selected behavior be retained or accounted for, including licence-key compatibility and account linking through Telegram, Discord, or both. This context explains the source of the requirements; the qualification project focuses on the separate micro-SaaS platform built for the existing product.
+The previous monolithic system is used as a functional reference for the new platform. Its existing feature set informs the requirements for compatibility and retained functions. The product owner requested that selected behavior be retained or accounted for, including licence-key compatibility and account linking through Telegram, Discord, or both. This context explains the source of the requirements; the qualification project focuses on the separate micro-SaaS platform to be developed for the existing product.
 
-The current production system contains four API services: user, license, usage, and distribution. User, license, and usage have separate PostgreSQL databases; distribution handles temporary files without its own database. RabbitMQ carries asynchronous commands and request/reply messages for file delivery. The web client uses React and TypeScript; nginx routes API traffic; Docker Compose runs the containers. These are current implementation facts; proposed future changes are listed separately.
+The proposed architecture comprises four API services: user, license, usage, and distribution. User, license, and usage have separate PostgreSQL databases; distribution handles temporary files without its own database. RabbitMQ carries asynchronous commands and request/reply messages for file delivery. The web client uses React and TypeScript; nginx routes API traffic; Docker Compose runs the containers. This stack defines the technological foundation for developing the platform.
 
 The primary Appendix 1 direction for this project is distributed systems and Cloud-Native microservice architectures: the platform has services with separate responsibilities and data stores, and asynchronous communication through RabbitMQ. AI & Data Engineering, Application Security & DevSecOps, and DevOps & Quality Engineering are related to the platform's analytics, protection, and verification, but do not define the main architectural problem. Micro-SaaS is the focused service model; microservices describe how the platform is built.
 
@@ -107,7 +107,7 @@ The primary Appendix 1 direction for this project is distributed systems and Clo
 
 ## 5. Technology stack
 
-| Category | Implementation |
+| Category | Proposed technologies |
 |---|---|
 | Languages | Python 3.12, TypeScript, SQL, Bash |
 | Architectural patterns and interfaces | Microservices; REST APIs; asynchronous messaging; request/reply messaging |
@@ -120,6 +120,6 @@ The primary Appendix 1 direction for this project is distributed systems and Clo
 
 ## 6. Scope and engineering work
 
-The project covers analysis of requirements based on the previous system and the product owner's request, and examination of the resulting micro-SaaS platform. Its engineering focus is the rationale for the microservice decomposition and component interactions, licensing and subscription mechanisms, account and device linking, file delivery, integrations, and analytics.
+The project covers analysis of requirements based on the previous system and the product owner's request, and the design, implementation, and verification of a new micro-SaaS platform. Its engineering focus is the rationale for the microservice decomposition and component interactions, licensing and subscription mechanisms, account and device linking, file delivery, integrations, and analytics.
 
 Proposed, measurable engineering tasks for supervisor approval include automated tests for key, subscription, and HWID flows; reliability testing of asynchronous file delivery under duplicate requests, delays, and failures; controlled load measurement of analytics APIs; and review of protections for sensitive telemetry and secrets. These are thesis proposals, not claims that the checks have already been implemented. The exact scope and evaluation criteria require supervisor approval.
