@@ -9,6 +9,8 @@
 <a id="diagram-level1"></a>
 ### C4 Level 1 — System Context
 
+![C4 Context — статичне прев’ю](diagrams/c4-context.svg)
+
 ```mermaid
 flowchart LR
   Guest["Person: Відвідувач"]
@@ -42,6 +44,8 @@ flowchart LR
 
 <a id="diagram-level2"></a>
 ### C4 Level 2 — Container
+
+![C4 Container — статичне прев’ю](diagrams/c4-container.svg)
 
 ```mermaid
 flowchart TB
@@ -116,6 +120,8 @@ flowchart TB
 ### C4 Level 3 — License Service
 
 Обрано License Service: він поєднує рішення про доступ, транзакційні записи, правила пристроїв, облік продажів та інтеграцію з підготовкою файлів і ботами. Показано фактичні залежності компонентів; повна інверсія залежностей або перебудова коду не заявляється.
+
+![C4 Component — статичне прев’ю](diagrams/c4-component.svg)
 
 ```mermaid
 flowchart TB
@@ -197,6 +203,7 @@ flowchart TB
 - Вісім груп FR ЛР №4 деталізовано в [19 вимог SRS-FUN](srs.md#2-functional-requirements--функціональні-вимоги); кожна група віднесена до вузла Level 2, а критичні сценарії License — до Level 3.
 - Чисельні обмеження збережено в [SRS-NFR](srs.md#3-non-functional-requirements--нефункціональні-вимоги); окремі [Verification Criteria](srs.md#4-verification-criteria--критерії-верифікації) називають інструменти й негативні сценарії.
 - Mermaid-код є первинним артефактом. SVG-прев’ю генеруються з нього; при зміні коду вони мають оновлюватися разом.
+- Якщо вбудований GitHub Mermaid-renderer не завантажується, SVG вище забезпечують перегляд схем; той самий Mermaid-код можна відкрити в Mermaid Live. Статичне прев’ю не є доказом роботи інтерактивного renderer.
 - Статус архітектурного етапу — In Progress: виконано документування, очікується рев’ю. Вимірювання NFR і виправлення обмежень коду не позначено завершеними.
 
 ## Джерела
