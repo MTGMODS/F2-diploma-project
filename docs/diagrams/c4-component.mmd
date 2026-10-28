@@ -1,51 +1,63 @@
 flowchart TB
-  Caller["Other containers: Gateway / боти"]
-  UserAPI["Other container: User Service"]
-  PG[("Other container: License PostgreSQL")]
-  Redis[("Other container: Redis")]
-  MQ["Other container: RabbitMQ"]
-  subgraph License["Container boundary: License Service / Python FastAPI"]
-    subgraph Inbound["Inbound / API"]
-      Routes["Component: REST routers<br/>client / user / admin / bot / stats"]
-      DTO["Component: Pydantic DTO<br/>domain.schemas"]
-      Guards["Component: JWT / ADMIN / bot-token guards<br/>Depends за маршрутом"]
+  Caller["External containers: Gateway / bots"]
+  PG[("License PostgreSQL")]
+  UserAPI["User Service"]
+  MQ["RabbitMQ"]
+  Redis[("Redis")]
+  subgraph License["License Service — цільова компонентна модель"]
+    subgraph Inbound["Inbound adapters"]
+      API["REST controllers"]
+      DTO["Pydantic DTO validation"]
+      Guard["JWT / ADMIN / bot-token guards"]
+      Worker["Expiry scheduler adapter"]
     end
-    subgraph Application["Application / бізнес-логіка"]
-      Service["Component: LicenseService<br/>Активація / чинність / пристрої"]
-      Stats["Component: LicenseStatsService<br/>Публічні агрегати"]
-      Worker["Component: Expiry worker<br/>Завершення підписок / команди"]
+    subgraph Core["Application / domain — без FastAPI та SQLAlchemy"]
+      UseCases["License use cases<br/>activate / check / reset / expire"]
+      Download["Download use case<br/>authorize + request build"]
+      Stats["Sales statistics use case"]
+      RP["Port: LicenseStore / PurchaseStore"]
+      UP["Port: UserDirectory"]
+      MP["Port: BuildGateway / BotPublisher"]
+      CP["Port: StatsCache"]
     end
-    subgraph Infra["Infrastructure / Outbound"]
-      Repo["Component: LicenseRepository / TransactionRepository<br/>SQLAlchemy ORM"]
-      Client["Component: UserServiceClient<br/>HTTP adapter"]
-      Messaging["Component: messaging functions<br/>aio-pika RPC / topic publish"]
-      Cache["Component: PublicStatsCache<br/>Redis loader / refresh lock"]
-      DB["Component: AsyncSession factory<br/>get_db / AsyncSessionLocal"]
+    subgraph Outbound["Outbound adapters"]
+      Repo["SQLAlchemy repositories / transaction scope"]
+      HTTP["httpx UserServiceClient"]
+      AMQP["aio-pika RPC / publisher"]
+      Cache["Redis cache adapter"]
     end
-    Errors["Cross-cutting: DomainException / Validation handlers<br/>HTTPException: стандартний FastAPI handler"]
-    Log["Cross-cutting: logging / stdout<br/>Розподілений tracing не заявлено"]
+    Wiring["Composition root<br/>Depends providers / constructor injection"]
+    Errors["Error boundary / sanitized logging"]
   end
-  Caller -->|"HTTP / JSON"| Routes
-  Routes -->|"FastAPI: валідація параметрів"| DTO
-  Routes -->|"Depends: JWT або ADMIN або bot-token"| Guards
-  Routes -->|"Depends: AsyncSession"| DB
-  Routes -->|"Python: LicenseService(db), method call"| Service
-  Routes -->|"Python: LicenseStatsService(cache)"| Stats
-  Routes -->|"Python await: download RPC після перевірки"| Messaging
-  Service -->|"Python: створення concrete repositories"| Repo
-  Service -->|"Python: concrete client call"| Client
-  Stats -->|"Python: cache.get(loader)"| Cache
-  Stats -->|"Python: loader / repository call"| Repo
-  Worker -->|"Python: create / await / commit"| Repo
-  Worker -->|"Python: AsyncSessionLocal"| DB
-  Worker -->|"Python: social IDs lookup"| Client
-  Worker -->|"Python await: publish commands"| Messaging
+  Caller -->|"HTTP / JSON"| API
+  API -->|"FastAPI validation"| DTO
+  API -->|"Depends: route-specific policy"| Guard
+  API -->|"injected interface call"| UseCases
+  API -->|"injected interface call"| Download
+  API -->|"injected interface call"| Stats
+  Worker -->|"injected expire use case"| UseCases
+  UseCases -->|"interface call"| RP
+  UseCases -->|"interface call"| UP
+  UseCases -->|"interface call: expiry commands"| MP
+  Download -->|"interface call: authorize"| RP
+  Download -->|"interface call: build / deadline"| MP
+  Stats -->|"interface call: aggregates loader"| RP
+  Stats -->|"interface call: cache policy"| CP
+  Repo -.->|"implements interface"| RP
+  HTTP -.->|"implements interface"| UP
+  AMQP -.->|"implements interface"| MP
+  Cache -.->|"implements interface"| CP
+  Wiring -.->|"binds ports to adapters"| Repo
+  Wiring -.->|"binds ports to adapters"| HTTP
+  Wiring -.->|"binds ports to adapters"| AMQP
+  Wiring -.->|"binds ports to adapters"| Cache
+  Wiring -.->|"constructs use cases"| UseCases
+  Wiring -.->|"constructs use cases"| Download
+  Wiring -.->|"constructs use cases"| Stats
+  API -.->|"exception mapping / log event"| Errors
+  Worker -.->|"exception mapping / log event"| Errors
+  DTO -.->|"422 validation error"| Errors
+  Repo -->|"SQL / PostgreSQL TCP"| PG
+  HTTP -->|"HTTP / JSON: internal token"| UserAPI
+  AMQP -->|"AMQP / TCP"| MQ
   Cache -->|"RESP / TCP"| Redis
-  Repo -->|"SQLAlchemy / SQL / TCP"| PG
-  Client -->|"HTTP / JSON: x-internal-token"| UserAPI
-  Messaging -->|"AMQP / TCP: correlation ID / reply_to"| MQ
-  Routes -.->|"Exception dispatch"| Errors
-  Service -.->|"DomainException"| Errors
-  DTO -.->|"RequestValidationError"| Errors
-  Service -.->|"Python logging"| Log
-  Messaging -.->|"stdout: технічні події"| Log

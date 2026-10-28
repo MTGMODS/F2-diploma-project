@@ -33,7 +33,7 @@ flowchart LR
   class Platform system
 ```
 
-[Окремий код Mermaid](diagrams/c4-context.mmd).
+[Окремий код Mermaid](diagrams/c4-context.mmd) · [Окрема схема в GitHub](diagrams/c4-context.md).
 
 - Відвідувач працює з публічними сторінками й Free-файлами; користувач — з кабінетом, адміністратор — з операціями керування. Канал доступу — HTTPS.
 - Зовнішній клієнт продукту викликає check і launch через REST/HTTPS; розроблення його ігрової логіки не належить платформі.
@@ -101,12 +101,12 @@ flowchart TB
   Browser -->|"HTTPS: зовнішня оплата"| Market
 ```
 
-[Окремий код Mermaid](diagrams/c4-container.mmd).
+[Окремий код Mermaid](diagrams/c4-container.mmd) · [Окрема схема в GitHub](diagrams/c4-container.md).
 
 - **Gateway / host nginx** завершує TLS, маршрутизує HTTP у приватний контур і застосовує per-IP limits. Він є інфраструктурою доступу поза Docker Compose. [SEC-01](srs.md#srs-nfr-sec-01), [SEC-04](srs.md#srs-nfr-sec-04).
 - **Web** — React SPA і nginx для статичного вмісту. Браузер виконує JavaScript та викликає API через gateway; стрілка gateway → Web означає доставку застосунку. Mini App відкриває той самий SPA. [FUN-01](srs.md#srs-fun-01), [FUN-02](srs.md#srs-fun-02).
-- **User Service** зберігає користувачів, соціальні ідентичності й сесії у власній PostgreSQL; Telegram/Discord викликаються через HTTPS. [FUN-03](srs.md#srs-fun-03), [FUN-04](srs.md#srs-fun-04), [FUN-05](srs.md#srs-fun-05).
-- **License Service** застосовує правила ключів, підписок, пристроїв і придбання; власна PostgreSQL містить відповідні записи. Профілі та social IDs отримуються від User Service через внутрішній HTTP з окремим токеном. [FUN-06–09](srs.md#srs-fun-06), [FUN-10](srs.md#srs-fun-10), [FUN-11](srs.md#srs-fun-11), [FUN-16](srs.md#srs-fun-16), [FUN-17](srs.md#srs-fun-17), [FUN-18](srs.md#srs-fun-18).
+- **User Service** зберігає користувачів, соціальні ідентичності й сесії у власній PostgreSQL; Telegram/Discord викликаються через HTTPS. [FUN-03](srs.md#srs-fun-03), [FUN-04](srs.md#srs-fun-04), [FUN-05](srs.md#srs-fun-05), [FUN-20](srs.md#srs-fun-20), [FUN-21](srs.md#srs-fun-21), [FUN-22](srs.md#srs-fun-22).
+- **License Service** застосовує правила ключів, підписок, пристроїв і придбання; власна PostgreSQL містить відповідні записи. Профілі та social IDs отримуються від User Service через внутрішній HTTP з окремим токеном. [FUN-06](srs.md#srs-fun-06), [FUN-07](srs.md#srs-fun-07), [FUN-08](srs.md#srs-fun-08), [FUN-09](srs.md#srs-fun-09), [FUN-10](srs.md#srs-fun-10), [FUN-11](srs.md#srs-fun-11), [FUN-16](srs.md#srs-fun-16), [FUN-17](srs.md#srs-fun-17), [FUN-18](srs.md#srs-fun-18), [FUN-24](srs.md#srs-fun-24).
 - **Usage Service** приймає події запуску й агрегує власну PostgreSQL. Публічні дані проходять через Redis-кеш; License Service використовує той самий Redis-контейнер з окремими ключами. RESP/TCP — протокол клієнта Redis. [FUN-14](srs.md#srs-fun-14), [FUN-15](srs.md#srs-fun-15), [CACHE-01](srs.md#srs-nfr-cache-01), [PRIV-01](srs.md#srs-nfr-priv-01).
 - **Distribution Service** читає приватні шаблони й базовий EXE, записує тимчасові Lua/EXE та видає файл через HTTP API. Власна реляційна БД йому не потрібна. POSIX-позначення означає локальний файловий доступ, не мережевий протокол. [FUN-12](srs.md#srs-fun-12), [FUN-13](srs.md#srs-fun-13), [FILE-01](srs.md#srs-nfr-file-01).
 - **RabbitMQ** переносить команди збірки та reply з URL, а також topic-команди ботам. HTTP-запит кабінету очікує RPC; брокер не робить його миттєвим. [REL-01](srs.md#srs-nfr-rel-01), [ADR-001](adr/0001-choice-of-technology.md).
@@ -119,80 +119,97 @@ flowchart TB
 <a id="diagram-level3"></a>
 ### C4 Level 3 — License Service
 
-Обрано License Service: він поєднує рішення про доступ, транзакційні записи, правила пристроїв, облік продажів та інтеграцію з підготовкою файлів і ботами. Показано фактичні залежності компонентів; повна інверсія залежностей або перебудова коду не заявляється.
+Обрано License Service: у ньому зосереджено рішення про доступ, активацію, пристрої, придбання та видачу файлів. Нижче наведено **цільову проєктну модель**, уточнену за результатами аудиту ЛР №5. Вона визначає контракти для подальшої реалізації; наявність усіх портів і DI-provider у програмному коді не заявляється.
 
-![C4 Component — статичне прев’ю](diagrams/c4-component.svg)
+[Вихідний ескіз наявних залежностей](diagrams/c4-component-reference.mmd) зберігає concrete constructors, прямий download → messaging і worker orchestration для порівняння з результатом аудиту.
+
+![C4 Component — цільова модель](diagrams/c4-component.svg)
 
 ```mermaid
 flowchart TB
-  Caller["Other containers: Gateway / боти"]
-  UserAPI["Other container: User Service"]
-  PG[("Other container: License PostgreSQL")]
-  Redis[("Other container: Redis")]
-  MQ["Other container: RabbitMQ"]
-  subgraph License["Container boundary: License Service / Python FastAPI"]
-    subgraph Inbound["Inbound / API"]
-      Routes["Component: REST routers<br/>client / user / admin / bot / stats"]
-      DTO["Component: Pydantic DTO<br/>domain.schemas"]
-      Guards["Component: JWT / ADMIN / bot-token guards<br/>Depends за маршрутом"]
+  Caller["External containers: Gateway / bots"]
+  PG[("License PostgreSQL")]
+  UserAPI["User Service"]
+  MQ["RabbitMQ"]
+  Redis[("Redis")]
+  subgraph License["License Service — цільова компонентна модель"]
+    subgraph Inbound["Inbound adapters"]
+      API["REST controllers"]
+      DTO["Pydantic DTO validation"]
+      Guard["JWT / ADMIN / bot-token guards"]
+      Worker["Expiry scheduler adapter"]
     end
-    subgraph Application["Application / бізнес-логіка"]
-      Service["Component: LicenseService<br/>Активація / чинність / пристрої"]
-      Stats["Component: LicenseStatsService<br/>Публічні агрегати"]
-      Worker["Component: Expiry worker<br/>Завершення підписок / команди"]
+    subgraph Core["Application / domain — без FastAPI та SQLAlchemy"]
+      UseCases["License use cases<br/>activate / check / reset / expire"]
+      Download["Download use case<br/>authorize + request build"]
+      Stats["Sales statistics use case"]
+      RP["Port: LicenseStore / PurchaseStore"]
+      UP["Port: UserDirectory"]
+      MP["Port: BuildGateway / BotPublisher"]
+      CP["Port: StatsCache"]
     end
-    subgraph Infra["Infrastructure / Outbound"]
-      Repo["Component: LicenseRepository / TransactionRepository<br/>SQLAlchemy ORM"]
-      Client["Component: UserServiceClient<br/>HTTP adapter"]
-      Messaging["Component: messaging functions<br/>aio-pika RPC / topic publish"]
-      Cache["Component: PublicStatsCache<br/>Redis loader / refresh lock"]
-      DB["Component: AsyncSession factory<br/>get_db / AsyncSessionLocal"]
+    subgraph Outbound["Outbound adapters"]
+      Repo["SQLAlchemy repositories / transaction scope"]
+      HTTP["httpx UserServiceClient"]
+      AMQP["aio-pika RPC / publisher"]
+      Cache["Redis cache adapter"]
     end
-    Errors["Cross-cutting: DomainException / Validation handlers<br/>HTTPException: стандартний FastAPI handler"]
-    Log["Cross-cutting: logging / stdout<br/>Розподілений tracing не заявлено"]
+    Wiring["Composition root<br/>Depends providers / constructor injection"]
+    Errors["Error boundary / sanitized logging"]
   end
-  Caller -->|"HTTP / JSON"| Routes
-  Routes -->|"FastAPI: валідація параметрів"| DTO
-  Routes -->|"Depends: JWT або ADMIN або bot-token"| Guards
-  Routes -->|"Depends: AsyncSession"| DB
-  Routes -->|"Python: LicenseService(db), method call"| Service
-  Routes -->|"Python: LicenseStatsService(cache)"| Stats
-  Routes -->|"Python await: download RPC після перевірки"| Messaging
-  Service -->|"Python: створення concrete repositories"| Repo
-  Service -->|"Python: concrete client call"| Client
-  Stats -->|"Python: cache.get(loader)"| Cache
-  Stats -->|"Python: loader / repository call"| Repo
-  Worker -->|"Python: create / await / commit"| Repo
-  Worker -->|"Python: AsyncSessionLocal"| DB
-  Worker -->|"Python: social IDs lookup"| Client
-  Worker -->|"Python await: publish commands"| Messaging
+  Caller -->|"HTTP / JSON"| API
+  API -->|"FastAPI validation"| DTO
+  API -->|"Depends: route-specific policy"| Guard
+  API -->|"injected interface call"| UseCases
+  API -->|"injected interface call"| Download
+  API -->|"injected interface call"| Stats
+  Worker -->|"injected expire use case"| UseCases
+  UseCases -->|"interface call"| RP
+  UseCases -->|"interface call"| UP
+  UseCases -->|"interface call: expiry commands"| MP
+  Download -->|"interface call: authorize"| RP
+  Download -->|"interface call: build / deadline"| MP
+  Stats -->|"interface call: aggregates loader"| RP
+  Stats -->|"interface call: cache policy"| CP
+  Repo -.->|"implements interface"| RP
+  HTTP -.->|"implements interface"| UP
+  AMQP -.->|"implements interface"| MP
+  Cache -.->|"implements interface"| CP
+  Wiring -.->|"binds ports to adapters"| Repo
+  Wiring -.->|"binds ports to adapters"| HTTP
+  Wiring -.->|"binds ports to adapters"| AMQP
+  Wiring -.->|"binds ports to adapters"| Cache
+  Wiring -.->|"constructs use cases"| UseCases
+  Wiring -.->|"constructs use cases"| Download
+  Wiring -.->|"constructs use cases"| Stats
+  API -.->|"exception mapping / log event"| Errors
+  Worker -.->|"exception mapping / log event"| Errors
+  DTO -.->|"422 validation error"| Errors
+  Repo -->|"SQL / PostgreSQL TCP"| PG
+  HTTP -->|"HTTP / JSON: internal token"| UserAPI
+  AMQP -->|"AMQP / TCP"| MQ
   Cache -->|"RESP / TCP"| Redis
-  Repo -->|"SQLAlchemy / SQL / TCP"| PG
-  Client -->|"HTTP / JSON: x-internal-token"| UserAPI
-  Messaging -->|"AMQP / TCP: correlation ID / reply_to"| MQ
-  Routes -.->|"Exception dispatch"| Errors
-  Service -.->|"DomainException"| Errors
-  DTO -.->|"RequestValidationError"| Errors
-  Service -.->|"Python logging"| Log
-  Messaging -.->|"stdout: технічні події"| Log
 ```
 
-[Окремий код Mermaid](diagrams/c4-component.mmd).
+[Окремий код Mermaid](diagrams/c4-component.mmd) · [Перегляд окремої схеми в GitHub](diagrams/c4-component.md).
 
-- **REST routers** розділяють client/user/admin/bot/stats API. FastAPI перевіряє DTO до виклику endpoint. Depends надає JWT/ADMIN/bot-token guards відповідно до маршруту; публічні check і статистика не потребують користувацького JWT.
-- **Pydantic DTO** визначають структуру запитів. **Guards** перевіряють підпис, строк, тип токена або відповідний внутрішній секрет; авторизація власника додатково виконується бізнес-логікою. [SEC-02/03](srs.md#srs-nfr-sec-02).
-- **LicenseService** застосовує правила активації, чинності та пристроїв; **LicenseStatsService** організовує отримання агрегатів. Це компоненти одного процесу, а не окремі мікросервіси.
-- **LicenseRepository / TransactionRepository** виконують SQLAlchemy-запити до PostgreSQL; **AsyncSession factory** надає сесію через get_db або AsyncSessionLocal. Наявність сесії в endpoint не означає, що endpoint напряму виконує SQL.
-- **UserServiceClient** є HTTP-адаптером пошуку профілів/social IDs. **Messaging functions** інкапсулюють aio-pika publish/RPC; download-маршрут викликає їх після перевірки активної ліцензії.
-- **PublicStatsCache** отримує loader і керує Redis fresh/stale та refresh lock. **Expiry worker** окремо відкриває сесію, змінює прострочені ліцензії й публікує бот-команди.
-- **Обробники помилок** перетворюють DomainException і RequestValidationError у JSON; HTTPException обробляється стандартними механізмами FastAPI. Власний глобальний handler усіх невідомих Exception не заявлено.
-- **Logging/stdout** показано як наявний технічний канал; повноцінні distributed tracing, Prometheus або уніфіковані структуровані журнали тут не приписуються.
+### Компоненти, контракти та напрями залежностей
 
-### Межі відповідності Clean Architecture та SOLID
+- **REST controllers** приймають HTTP і викликають application use cases через ін’єктовані залежності. Вони не виконують SQL і не звертаються до aio-pika напряму. Валідація **Pydantic DTO** та **JWT/ADMIN/bot-token guards** залишається на вході; публічні маршрути не отримують зайвого JWT-обмеження. [SEC-02](srs.md#srs-nfr-sec-02), [SEC-03](srs.md#srs-nfr-sec-03).
+- **License use cases** визначають активацію, чинність, квоти, скидання й завершення ліцензії. Власник ресурсу перевіряється в use case; підпис JWT не підміняє ownership. [FUN-07](srs.md#srs-fun-07), [FUN-09](srs.md#srs-fun-09), [FUN-10](srs.md#srs-fun-10), [FUN-11](srs.md#srs-fun-11).
+- **Download use case** об’єднує перевірку активного доступу та запит збірки через BuildGateway; загальний deadline керується в цьому application-сценарії. [FUN-12](srs.md#srs-fun-12), [REL-05](srs.md#srs-nfr-rel-05).
+- **Sales statistics use case** звертається до портів сховища й кешу; loader-логіка не отримує мережевих деталей Redis. [FUN-17](srs.md#srs-fun-17), [CACHE-02](srs.md#srs-nfr-cache-02).
+- **Expiry scheduler adapter** лише запускає відповідний use case. Зміна стану, отримання social IDs і публікація бот-команди координуються application layer через порти. [FUN-19](srs.md#srs-fun-19), [FUN-23](srs.md#srs-fun-23).
+- **LicenseStore/PurchaseStore, UserDirectory, BuildGateway/BotPublisher, StatsCache** є внутрішніми контрактами. Use cases залежать від цих контрактів; адаптери реалізують їх. Пунктир implements означає залежність типів/реалізації, а не доставку повідомлення.
+- **SQLAlchemy repositories / transaction scope** реалізують доступ до PostgreSQL; **httpx client** — HTTP до User Service; **aio-pika adapter** — AMQP RPC/publish; **Redis adapter** — RESP і cache locks. Контракти повинні повертати application DTO/значення й доменні помилки, не ORM-моделі або FastAPI Response.
+- **Composition root** зв’язує порти з concrete adapters і створює use cases через constructor injection. FastAPI Depends використовується на межі застосунку; core не залежить від FastAPI, AsyncSession чи aio-pika. Різні порти для build і bot commands не вимагають спільного широкого інтерфейсу.
+- **Error boundary / sanitized logging** перетворює помилки у визначений HTTP-контракт і записує технічну подію без секретів. Guards, валідація й error mapping є cross-cutting механізмами, а не бізнес-правилами. [OBS-01](srs.md#srs-nfr-obs-01), [PRIV-02](srs.md#srs-nfr-priv-02).
 
-Залежність routes → application → repository присутня для основних сценаріїв. Однак LicenseService сам створює concrete repositories і UserServiceClient; business layer також залежить від AsyncSession та ORM-моделей. Тому Depends на вході не доводить повної Dependency Inversion. Download-маршрут напряму викликає messaging, а expiry worker координує repository, client і publisher. Це зафіксовані компроміси, які збільшують зв’язність і потребу в інтеграційних тестах.
+### Усунені недоліки на рівні проєктування
 
-Схема не додає відсутніх інтерфейсів, Unit of Work чи transactional outbox. Можливе подальше винесення контрактів та orchestration є рекомендацією аудиту, а не виконаною зміною коду. Для перевірки ізоляції й негативних сценаріїв застосовуються [VC-03–07](srs.md#4-verification-criteria--критерії-верифікації). Залежність від RabbitMQ обґрунтовано в [ADR-001](adr/0001-choice-of-technology.md).
+Після аудиту concrete construction перенесено в composition root, download orchestration — до use case, а ORM/HTTP/AMQP/Redis — за outbound ports. Це виправлення Mermaid-моделі та контрактів, не звіт про рефакторинг реалізації. Перевірка майбутньої реалізації має включати unit tests з підміною портів, перевірку імпортів core без framework dependencies та інтеграційні сценарії [VC-03–07](srs.md#4-verification-criteria--критерії-верифікації).
+
+Transactional outbox, кластерний broker і distributed tracing не додаються до складу системи. Ризик неатомарності БД/publish залишається явним компромісом [ADR-001](adr/0001-choice-of-technology.md); DI не усуває цей ризик автоматично.
 
 ## 2.3. Журнал архітектурних рішень (Architecture Decision Records)
 
@@ -200,7 +217,7 @@ flowchart TB
 
 ## Трасування та перевірка
 
-- Вісім груп FR ЛР №4 деталізовано в [19 вимог SRS-FUN](srs.md#2-functional-requirements--функціональні-вимоги); кожна група віднесена до вузла Level 2, а критичні сценарії License — до Level 3.
+- Вісім груп FR ЛР №4 деталізовано в [24 вимоги SRS-FUN](srs.md#2-functional-requirements--функціональні-вимоги); кожна група віднесена до вузла Level 2, а критичні сценарії License — до Level 3.
 - Чисельні обмеження збережено в [SRS-NFR](srs.md#3-non-functional-requirements--нефункціональні-вимоги); окремі [Verification Criteria](srs.md#4-verification-criteria--критерії-верифікації) називають інструменти й негативні сценарії.
 - Mermaid-код є первинним артефактом. SVG-прев’ю генеруються з нього; при зміні коду вони мають оновлюватися разом.
 - Якщо вбудований GitHub Mermaid-renderer не завантажується, SVG вище забезпечують перегляд схем; той самий Mermaid-код можна відкрити в Mermaid Live. Статичне прев’ю не є доказом роботи інтерактивного renderer.
