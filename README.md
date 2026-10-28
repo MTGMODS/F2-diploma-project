@@ -19,7 +19,9 @@
 - [docs/adr/](docs/adr/) — журнал архітектурних рішень.
 - [docs/README.md](docs/README.md) — навігація пояснювальною запискою та календарний план.
 - [docs/0_intro.md](docs/0_intro.md) — вступ: науковий апарат і сім завдань проєкту.
-- `docs/1_analysis.md`, `docs/2_design.md`, `docs/3_implementation.md`, `docs/4_conclusions.md` — каркас розділів і висновків для подальшого наповнення.
+- [docs/1_analysis.md](docs/1_analysis.md) — зведений Розділ 1, моделі As-Is/To-Be та вимоги.
+- [Розділ 1 у Google Документах](https://docs.google.com/document/d/1DwbI0r6h8gW30s2dgmIkGbK9cMGF6mNTiIAcr1Q9ERg/edit) — робочий консолідований документ ЛР №4.
+- `docs/3_implementation.md`, `docs/4_conclusions.md` — каркас реалізації та загальних висновків.
 - `docs/proposal.md` — попередня технічна пропозиція українською та англійською.
 - `src/` — місце для версіонованих матеріалів кваліфікаційного проєкту.
 
