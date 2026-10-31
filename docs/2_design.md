@@ -9,8 +9,6 @@
 <a id="diagram-level1"></a>
 ### C4 Level 1 — System Context
 
-![C4 Context — статичне прев’ю](diagrams/c4-context.svg)
-
 ```mermaid
 flowchart LR
   Guest["Person: Відвідувач"]
@@ -44,8 +42,6 @@ flowchart LR
 
 <a id="diagram-level2"></a>
 ### C4 Level 2 — Container
-
-![C4 Container — статичне прев’ю](diagrams/c4-container.svg)
 
 ```mermaid
 flowchart TB
@@ -122,8 +118,6 @@ flowchart TB
 Обрано License Service: у ньому зосереджено рішення про доступ, активацію, пристрої, придбання та видачу файлів. Нижче наведено **цільову проєктну модель**, уточнену за результатами аудиту ЛР №5. Вона визначає контракти для подальшої реалізації; наявність усіх портів і DI-provider у програмному коді не заявляється.
 
 [Вихідний ескіз наявних залежностей](diagrams/c4-component-reference.mmd) зберігає concrete constructors, прямий download → messaging і worker orchestration для порівняння з результатом аудиту.
-
-![C4 Component — цільова модель](diagrams/c4-component.svg)
 
 ```mermaid
 flowchart TB
@@ -219,8 +213,8 @@ Transactional outbox, кластерний broker і distributed tracing не д
 
 - Вісім груп FR ЛР №4 деталізовано в [24 вимоги SRS-FUN](srs.md#2-functional-requirements--функціональні-вимоги); кожна група віднесена до вузла Level 2, а критичні сценарії License — до Level 3.
 - Чисельні обмеження збережено в [SRS-NFR](srs.md#3-non-functional-requirements--нефункціональні-вимоги); окремі [Verification Criteria](srs.md#4-verification-criteria--критерії-верифікації) називають інструменти й негативні сценарії.
-- Mermaid-код є первинним артефактом. SVG-прев’ю генеруються з нього; при зміні коду вони мають оновлюватися разом.
-- Для незалежного інтерактивного перегляду наведено Mermaid Live; той самий код зберігається в Git. SVG мають явні розміри й забезпечують читабельний резервний перегляд при недоступності вбудованого GitHub renderer. Статичне прев’ю не підміняє перевірку інтерактивного перегляду.
+- Mermaid-код є первинним артефактом; відповідні `.mmd`-файли та блоки Розділу 2 повинні залишатися синхронізованими.
+- Для незалежного інтерактивного перегляду наведено Mermaid Live; той самий код зберігається в Git. Перегляд у Mermaid Live не підміняє перевірку Mermaid Preview безпосередньо в GitHub, передбачену Завданням 5.
 - Статус архітектурного етапу — In Progress: виконано документування, очікується рев’ю. Вимірювання NFR і виправлення обмежень коду не позначено завершеними.
 
 ## Джерела

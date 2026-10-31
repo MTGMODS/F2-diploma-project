@@ -25,5 +25,3 @@ flowchart LR
   classDef system fill:#e8f1ff,stroke:#2563eb,color:#111827
   class Platform system
 ```
-
-![C4 Level 1 — System Context — SVG](c4-context.svg)

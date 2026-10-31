@@ -69,5 +69,3 @@ flowchart TB
   AMQP -->|"AMQP / TCP"| MQ
   Cache -->|"RESP / TCP"| Redis
 ```
-
-![C4 Level 3 — License Service — SVG](c4-component.svg)

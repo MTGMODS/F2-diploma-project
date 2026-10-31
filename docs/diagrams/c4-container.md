@@ -57,5 +57,3 @@ flowchart TB
   Dist -->|"POSIX read / write / unlink"| Files
   Browser -->|"HTTPS: зовнішня оплата"| Market
 ```
-
-![C4 Level 2 — Container — SVG](c4-container.svg)
