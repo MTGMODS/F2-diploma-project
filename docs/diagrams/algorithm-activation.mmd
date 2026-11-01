@@ -1,0 +1,39 @@
+graph TD
+    S([Початок]) --> I[/Ввід: JWT, key, force/]
+    I --> V[[V := ValidateJWTAndDTO]]
+    V --> Q{V.ok = TRUE}
+    Q -->|Ні| VE[/Вивід: V.http_status/]
+    VE --> E([Кінець])
+    Q -->|Так| L[[L := FindLicenseByKey]]
+    L --> K{L ≠ NULL AND L.status = NOT_ACTIVATED}
+    K -->|Ні| BAD[/Вивід: 400 INVALID_KEY/]
+    BAD --> E
+    K -->|Так| A[[Old := FindActiveLicenseForUser]]
+    A --> C{Old ≠ NULL AND NOT force}
+    C -->|Так| CON[/Вивід: 409 ACTIVE_LICENSE_EXISTS/]
+    CON --> E
+    C -->|Ні| H{Old ≠ NULL}
+    H -->|Так| O[Old.status := EXPIRED; Old.expires_at := NowUTC]
+    H -->|Ні| D
+    O --> D{L.duration_days = NULL}
+    D -->|Так| N[Expiry := NULL]
+    D -->|Ні| T["Expiry := NowUTC + Days(L.duration_days)"]
+    N --> SET
+    T --> SET[L.user_id := V.user_id; L.status := ACTIVE; L.activated_at := NowUTC; L.expires_at := Expiry]
+    SET --> C1[[R1 := CommitActivation]]
+    C1 --> OK1{R1.ok = TRUE}
+    OK1 -->|Ні| F[/Вивід: 500; стан commit перевіряється окремо/]
+    F --> E
+    OK1 -->|Так| P[[Tx := FindPurchaseByLicense]]
+    P --> HAS{Tx ≠ NULL}
+    HAS -->|Ні| RES[/Вивід: 200 success/]
+    HAS -->|Так| UP[Tx.user_id := V.user_id; Tx.status := COMPLETED; Tx.purchased_at := NowUTC]
+    UP --> C2[[R2 := CommitPurchase]]
+    C2 --> OK2{R2.ok = TRUE}
+    OK2 -->|Так| RES
+    OK2 -->|Ні| PART[/Вивід: 500; активація вже записана/]
+    PART --> E
+    RES --> E
+    L -. Помилка .-> F
+    A -. Помилка .-> F
+    P -. Помилка .-> PART

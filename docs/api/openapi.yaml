@@ -1,0 +1,357 @@
+openapi: 3.0.3
+info:
+  title: MTG MODS License API — критичні інтерфейси
+  version: 1.0.0
+  description: >-
+    Контракт трьох операцій License Service. Web Frontend та клієнт цифрового
+    продукту звертаються через API Gateway; прямий префікс сервісу /api/v1/license.
+    На публічній межі /v1/license. Командні POST збережено для сумісності;
+    check змінює облік пристроїв, download запускає генерацію.
+    Приклади синтетичні. Секрети не включено.
+servers:
+  - url: https://api.mtgmods.com/v1
+    description: Публічний API Gateway
+tags:
+  - name: License
+security:
+  - bearerAuth: []
+paths:
+  /license/activate:
+    post:
+      tags: [License]
+      operationId: activateLicense
+      summary: Активувати ключ для автентифікованого користувача
+      description: >-
+        Власник визначається з JWT sub, type=access, HS256. Повторна активація
+        не є ідемпотентною. Активація ліцензії та завершення пов'язаної покупки
+        мають окремі commit. За збоєм другого commit активація може вже існувати.
+        key перевіряється DTO лише за довжиною; шаблон ключа явно перевіряє check.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActivateRequest'
+            example:
+              key: ABCD-EF12-GH34-IJ56
+              force: false
+      responses:
+        '200':
+          description: Ключ активовано; ID ліцензії у відповіді немає
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActivateSuccess'
+              example:
+                status: success
+                message: License activated successfully
+        '400':
+          description: INVALID_KEY — ключ відсутній або вже не NOT_ACTIVATED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DomainError'
+              example:
+                error_code: INVALID_KEY
+                message: Invalid key or already activated
+                timestamp: '2026-11-01T12:00:00Z'
+                path: /api/v1/license/activate
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: ACTIVE_LICENSE_EXISTS — потрібне явне force=true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DomainError'
+              example:
+                error_code: ACTIVE_LICENSE_EXISTS
+                message: You already have an active license. Activating this key will deactivate the old one.
+                timestamp: '2026-11-01T12:00:00Z'
+                path: /api/v1/license/activate
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/UnhandledError'
+        '502':
+          $ref: '#/components/responses/GatewayFailure'
+        '504':
+          $ref: '#/components/responses/GatewayFailure'
+  /license/check:
+    post:
+      tags: [License]
+      operationId: checkLicenseDevice
+      summary: Перевірити ключ і зареєструвати або оновити HWID
+      security: []
+      description: >-
+        JWT не потрібен. Ключ є обліковим секретом і передається у JSON через TLS.
+        device — HWID, не категорія PC/MOBILE. IP та User-Agent беруться з HTTP.
+        Рішення про завершення ліцензії спирається на status; expires_at оновлює
+        фоновий expiry-процес. Успішний id є licenses.id, не users.id.
+        Зміни пристрою можуть бути записані до помилки отримання профілю.
+        Gateway: 30 запитів/хв/IP, burst=5; заголовок Retry-After не гарантовано.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckRequest'
+            example:
+              key: ABCD-EF12-GH34-IJ56
+              device: synthetic-hwid-001
+      responses:
+        '200':
+          description: Доступ підтверджено; HWID записано/оновлено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckSuccess'
+              example:
+                valid: true
+                user: MTGVIP
+                id: 42
+        '400':
+          description: Виняток бізнес-операції або залежності; сумісна відповідь маршруту
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckInternalError'
+              example:
+                valid: false
+                error: Internal server error
+        '403':
+          description: LICENSE_BANNED / LICENSE_EXPIRED / LICENSE_NOT_ACTIVATED / HWID_LIMIT_REACHED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckDenied'
+              examples:
+                quota:
+                  value: {valid: false, error_code: HWID_LIMIT_REACHED, message: Device limit reached. Reset a device in your account.}
+                expired:
+                  value: {valid: false, error_code: LICENSE_EXPIRED, message: License has expired.}
+                banned:
+                  value: {valid: false, error_code: LICENSE_BANNED, message: License is blocked.}
+                inactive:
+                  value: {valid: false, error_code: LICENSE_NOT_ACTIVATED, message: Activate the license in your account.}
+        '404':
+          description: LICENSE_NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckNotFound'
+              example:
+                valid: false
+                error_code: LICENSE_NOT_FOUND
+                message: License key not found.
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          description: Ліміт запитів API Gateway
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitError'
+              example: {valid: false, error_code: RATE_LIMIT, retry: 60}
+        '500':
+          $ref: '#/components/responses/UnhandledError'
+        '502':
+          $ref: '#/components/responses/GatewayFailure'
+        '504':
+          $ref: '#/components/responses/GatewayFailure'
+  /license/download:
+    post:
+      tags: [License]
+      operationId: requestVipDownload
+      summary: Підготувати VIP-файл для власника активної ліцензії
+      description: >-
+        Тіла запиту немає; user_id береться з JWT, не з клієнтського JSON.
+        License Service передає FileGenerationRequested через RabbitMQ до
+        Distribution Service. correlation_id і reply_to містяться у властивостях
+        AMQP; відповідь брокера є UTF-8 URL. REL-05 вимагає загальний deadline
+        30 с. Вихідний адаптер обмежує 30 с лише очікування reply після publish;
+        загальний deadline є цільовою вимогою до реалізації, не виміряним результатом.
+        Таймаут не скасовує збірку і не гарантує exactly-once.
+      x-amqp:
+        routingKey: file_generation_queue
+        requestSchema: '#/components/schemas/FileGenerationRequested'
+        properties: [correlation_id, reply_to]
+        responseBody: UTF-8 URL string, not JSON
+      responses:
+        '200':
+          description: Отримано посилання на підготовлений файл
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DownloadSuccess'
+              example:
+                status: success
+                message: File generated successfully.
+                download_url: https://files.mtgmods.com/generated/synthetic-build.zip
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: NO_ACTIVE_LICENSE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DomainError'
+              example:
+                error_code: NO_ACTIVE_LICENSE
+                message: You don't have an active license.
+                timestamp: '2026-11-01T12:00:00Z'
+                path: /api/v1/license/download
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          description: FILE_GENERATION_FAILED або необроблена помилка до RPC
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DomainError'
+              example:
+                error_code: FILE_GENERATION_FAILED
+                message: Distribution service is busy or offline.
+                timestamp: '2026-11-01T12:00:00Z'
+                path: /api/v1/license/download
+            text/plain:
+              schema: {type: string}
+        '502':
+          $ref: '#/components/responses/GatewayFailure'
+        '504':
+          $ref: '#/components/responses/GatewayFailure'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Access JWT, HS256, sub є внутрішнім числовим users.id у рядковому представленні, type=access; прострочений підпис відхиляється
+  schemas:
+    ActivateRequest:
+      type: object
+      required: [key]
+      properties:
+        key:
+          type: string
+          minLength: 19
+          maxLength: 19
+          description: DTO перевіряє лише довжину; ключ шукається точно у licenses.key
+        force:
+          type: boolean
+          default: false
+          description: Явна згода завершити попередню активну ліцензію
+    CheckRequest:
+      type: object
+      required: [key, device]
+      properties:
+        key:
+          type: string
+          minLength: 19
+          maxLength: 19
+          pattern: '^[A-Z0-9]{4}(-[A-Z0-9]{4}){3}$'
+        device:
+          type: string
+          minLength: 2
+          maxLength: 100
+          description: HWID; зберігається у license_activations.device
+    ActivateSuccess:
+      type: object
+      required: [status, message]
+      properties:
+        status: {type: string, enum: [success]}
+        message: {type: string, enum: [License activated successfully]}
+    CheckSuccess:
+      type: object
+      required: [valid, user, id]
+      properties:
+        valid: {type: boolean, enum: [true]}
+        user: {type: string, description: User Service nickname або MTGVIP для порожнього nickname; не соціальний ID}
+        id: {type: integer, format: int32, description: licenses.id; ніколи не users.id}
+    CheckDenied:
+      type: object
+      required: [valid, error_code, message]
+      properties:
+        valid: {type: boolean, enum: [false]}
+        error_code: {type: string, enum: [LICENSE_BANNED, LICENSE_EXPIRED, LICENSE_NOT_ACTIVATED, HWID_LIMIT_REACHED]}
+        message: {type: string}
+    CheckNotFound:
+      type: object
+      required: [valid, error_code, message]
+      properties:
+        valid: {type: boolean, enum: [false]}
+        error_code: {type: string, enum: [LICENSE_NOT_FOUND]}
+        message: {type: string}
+    CheckInternalError:
+      type: object
+      required: [valid, error]
+      properties:
+        valid: {type: boolean, enum: [false]}
+        error: {type: string, enum: [Internal server error]}
+    RateLimitError:
+      type: object
+      required: [valid, error_code, retry]
+      properties:
+        valid: {type: boolean, enum: [false]}
+        error_code: {type: string, enum: [RATE_LIMIT]}
+        retry: {type: integer, enum: [60], description: Секунди до повтору}
+    DownloadSuccess:
+      type: object
+      required: [status, message, download_url]
+      properties:
+        status: {type: string, enum: [success]}
+        message: {type: string, enum: [File generated successfully.]}
+        download_url: {type: string, format: uri}
+    DomainError:
+      type: object
+      required: [error_code, message, timestamp, path]
+      properties:
+        error_code: {type: string}
+        message: {type: string}
+        timestamp: {type: string, format: date-time, description: UTC ISO 8601 з Z}
+        path: {type: string, description: Внутрішній шлях /api/v1/license/... після rewrite Gateway}
+    AuthError:
+      type: object
+      required: [detail]
+      properties:
+        detail: {type: string}
+    FileGenerationRequested:
+      type: object
+      required: [event_type, payload]
+      properties:
+        event_type: {type: string, enum: [FileGenerationRequested]}
+        payload:
+          type: object
+          required: [user_id, expire_date]
+          properties:
+            user_id: {type: integer, format: int32}
+            expire_date: {type: string, format: date-time, nullable: true, description: licenses.expires_at у UTC; null для lifetime}
+  responses:
+    Unauthorized:
+      description: Відсутній/некоректний Bearer або прострочений/неприпустимий access JWT
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AuthError'
+          example: {detail: Token expired}
+    ValidationError:
+      description: 422 VALIDATION_ERROR — DTO або параметри запиту не пройшли валідацію
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/DomainError'
+          example:
+            error_code: VALIDATION_ERROR
+            message: 'Invalid input data: key: String should have at least 19 characters'
+            timestamp: '2026-11-01T12:00:00Z'
+            path: /api/v1/license/check
+    UnhandledError:
+      description: Необроблений збій інфраструктури; JSON DomainError не гарантовано
+      content:
+        text/plain:
+          schema: {type: string}
+    GatewayFailure:
+      description: Помилка або таймаут проксі; формат тіла не є контрактом License Service
+      content:
+        text/html:
+          schema: {type: string}

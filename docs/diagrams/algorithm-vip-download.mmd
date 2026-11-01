@@ -1,0 +1,36 @@
+graph TD
+    S([Початок]) --> I[/Ввід: access JWT/]
+    I --> T[Deadline := MonotonicNow + 30 s]
+    T --> V[[V := ValidateJWT]]
+    V --> AUTH{V.ok = TRUE}
+    AUTH -->|Ні| UN[/Вивід: 401/]
+    UN --> E([Кінець])
+    AUTH -->|Так| L[[L := FindActiveLicenseBeforeDeadline]]
+    L --> HAS{L ≠ NULL}
+    HAS -->|Ні| DENY[/Вивід: 403 NO_ACTIVE_LICENSE/]
+    DENY --> E
+    HAS -->|Так| INIT["ExpireDate := FormatUTC(L.expires_at); CorrelationId := UUID; URL := EMPTY"]
+    INIT --> CONNECT[[Callback := OpenExclusiveReplyQueueBeforeDeadline]]
+    CONNECT --> PUB[[R := PublishBuildRequestBeforeDeadline]]
+    PUB --> LOOP{MonotonicNow &lt; Deadline AND URL = EMPTY}
+    LOOP -->|Так| WAIT[[Msg := ReceiveBeforeDeadline]]
+    WAIT --> ID{Msg.correlation_id = CorrelationId}
+    ID -->|Ні| ACK[[Ack := AcknowledgeMessage]]
+    ACK --> LOOP
+    ID -->|Так| DECODE["URL := DecodeUTF8(Msg.body)"]
+    DECODE --> VALID{"IsURL(URL) AND URL ≠ EMPTY"}
+    VALID -->|Ні| FAIL[/Вивід: 500 FILE_GENERATION_FAILED/]
+    VALID -->|Так| DONE[[Ack := AcknowledgeMessage; Closed := CloseReplyResources]]
+    DONE --> OUT[/Вивід: 200; status := success; download_url := URL/]
+    OUT --> E
+    LOOP -->|Ні| FAIL
+    WAIT -. Таймаут OR помилка .-> FAIL
+    CONNECT -. Таймаут OR помилка .-> FAIL
+    PUB -. Таймаут OR помилка .-> FAIL
+    L -. Таймаут OR помилка .-> FAIL
+    ACK -. Помилка .-> FAIL
+    DECODE -. Помилка .-> FAIL
+    DONE -. Помилка .-> FAIL
+    FAIL --> CLEAN[[Closed := CloseReplyResources]]
+    CLEAN --> E
+    CLEAN -. Помилка .-> E
