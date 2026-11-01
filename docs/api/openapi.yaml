@@ -201,8 +201,6 @@ paths:
                 message: You don't have an active license.
                 timestamp: '2026-11-01T12:00:00Z'
                 path: /api/v1/license/download
-        '422':
-          $ref: '#/components/responses/ValidationError'
         '500':
           description: FILE_GENERATION_FAILED або необроблена помилка до RPC
           content:

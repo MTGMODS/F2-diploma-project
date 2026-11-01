@@ -239,13 +239,14 @@ Transactional outbox, кластерний broker і distributed tracing не д
 
 
 
+
 ## 2.4. Проєктування та моделювання баз даних
 
 ### Межі володіння та специфікація
 
 Реляційна модель містить 7 таблиць і 47 полів. User Service володіє users, oauth_handoffs і refresh_sessions; License Service — licenses, license_activations і transaction_purchases; Usage Service — launches. У Distribution Service власної БД немає. Префікси USER/ LICENSE/ USAGE нижче означають окремі БД, не PostgreSQL-схеми одного сервера.
 
-У ERD показано лише фізичні FK; user_id в інших таблицях є логічним посиланням, а не вигаданим міжбазовим обмеженням. `device` таблиці license_activations — HWID; `device` таблиці launches — PC/MOBILE. Кратності враховують nullable FK. `..` позначає неідентифікувальний зв’язок, не «віртуальний FK».
+Фізичні FK у ERD відокремлено від логічних посилань; user_id в інших таблицях є логічним посиланням, а не вигаданим міжбазовим обмеженням. `device` таблиці license_activations — HWID; `device` таблиці launches — PC/MOBILE. Кратності враховують nullable FK. `..` позначає неідентифікувальний зв’язок, не «віртуальний FK». Статус DELETED зберігає рядок користувача; це не SQL DELETE. Очищення сесій виконується за expires_at, а фізичні каскади стосуються видалення ліцензії. Повний опис наведено у [життєвому циклі даних](data/schema.md#життєвий-цикл-користувача-сесій-та-каскади).
 
 ```mermaid
 erDiagram
@@ -360,7 +361,7 @@ classDiagram
 
 Gateway переписує публічний `/v1/license/...` у внутрішній `/api/v1/license/...`; тому DomainError.path може містити внутрішній шлях. POST збережено: activate і download виконують команди, а check записує пристрій. Перейменування на GET спотворило б семантику побічної дії й винесло секрет у URL.
 
-JWT-помилка має `{detail}`, доменна/DTO — `{error_code,message,timestamp,path}`, клієнтська check — власні сумісні структури. 422 не підмінено на 400. Загальний 500 та 502/504 проксі можуть бути text/plain або text/html; єдиного JSON для всіх збоїв не обіцяється. Зайві DTO-поля не оголошено забороненими: Pydantic за замовчуванням їх ігнорує.
+JWT-помилка має `{detail}`, доменна/DTO — `{error_code,message,timestamp,path}`, клієнтська check — власні сумісні структури. Для activate/check валідація DTO повертає 422; у download немає body/path/query DTO, тому 422 для нього не оголошується. Загальний 500 та 502/504 проксі можуть бути text/plain або text/html; єдиного JSON для всіх збоїв не обіцяється. Зайві DTO-поля не оголошено забороненими: Pydantic за замовчуванням їх ігнорує.
 
 Ключ: 16 символів A–Z/0–9 у чотирьох групах, 19 символів разом із дефісами. Activate DTO перевіряє довжину; check DTO — також regex. `force` є командою, `valid` — обчисленим результатом, `download_url` — результатом RPC; відповідних колонок у БД не потрібно. `expire_date` повідомлення відповідає nullable licenses.expires_at у UTC. Відповідь AMQP — рядок URL UTF-8, не JSON-об’єкт. Валідація специфікації та прикладів виконується без реальних активацій або платних завантажень.
 
@@ -485,58 +486,62 @@ graph TD
 
 ### A3. Координація VIP-завантаження через RabbitMQ
 
-Трасування: [FUN-12](srs.md#srs-fun-12), [REL-05](srs.md#srs-nfr-rel-05), [ADR-001](adr/0001-choice-of-technology.md). Сутності: активна licenses; повідомлення FileGenerationRequested; ексклюзивна callback-черга. Постійної таблиці генерацій у моделі немає.
+Трасування: [FUN-12](srs.md#srs-fun-12), [REL-01](srs.md#srs-nfr-rel-01), [ADR-001](adr/0001-choice-of-technology.md). Сутності: активна licenses; повідомлення FileGenerationRequested; ексклюзивна callback-черга. Постійної таблиці генерацій немає. Схема відтворює послідовність маршруту download та RabbitMQ-адаптера.
 
-1. [Термінатор → Дані → Процес] Прийняти access JWT. `Deadline := MonotonicNow + 30 s`. Це цільовий загальний deadline application-сценарію з REL-05; операції вводу/виводу отримують залишок цього бюджету.
-2. [Підпрограма → Рішення] `V := ValidateJWT`; помилка — 401. `L := FindActiveLicenseBeforeDeadline(V.user_id)`; відсутність — 403 NO_ACTIVE_LICENSE. Тіло запиту/user_id від клієнта не приймається.
-3. [Процес] `ExpireDate := FormatUTC(L.expires_at)` із збереженням NULL для lifetime; `CorrelationId := UUID`, `URL := EMPTY`.
-4. [Підпрограми] Відкрити connection/channel і ексклюзивну reply-чергу. Надіслати у file_generation_queue JSON з event_type FileGenerationRequested і payload user_id/expire_date; correlation_id і reply_to — властивості AMQP, а не колонки БД.
-5. [Рішення → Підпрограма] Поки `MonotonicNow < Deadline AND URL = EMPTY`, виконувати `Msg := ReceiveBeforeDeadline`. Чуже correlation_id підтвердити й продовжити цикл у межах того самого deadline. Збіг — `URL := DecodeUTF8(Msg.body)`.
-6. [Рішення] `IsURL(URL) AND URL ≠ EMPTY` є цільовою перевіркою відповіді. Порожній/пошкоджений результат, таймаут або помилка дають 500 FILE_GENERATION_FAILED. Отримання не може чекати довше залишку бюджету. Підтвердження та закриття виконуються із контрольованим завершенням; помилка закриття не створює нескінченний cleanup.
-7. [Підпрограма → Дані → Термінатор] Звільнити callback-ресурси. Успіх — 200 з download_url. Збій — 500; запит не повторюється автоматично, генерація на Distribution не скасовується. Idempotency key, outbox і exactly-once не заявляються.
+1. [Термінатор → Дані → Підпрограма] Прийняти access JWT. `V := ValidateJWT`; помилка автентифікації — 401. `L := FindActiveLicenseForUser(V.user_id)`; відсутність активної ліцензії — 403 NO_ACTIVE_LICENSE. Тіло запиту та user_id від клієнта не приймаються.
+2. [Процес] `ExpireDate := FormatUTC(L.expires_at)`; NULL для lifetime зберігається. Читання ліцензії та форматування часу виконуються перед блоком try маршруту, який охоплює RPC. Їхній необроблений збій дає звичайний 500; код FILE_GENERATION_FAILED до нього не приписується.
+3. [Підпрограми → Процес] Відкрити RabbitMQ connection/channel та ексклюзивну callback-чергу. `CorrelationId := UUID`; `Request := BuildRequest(V.user_id, ExpireDate)`. Надіслати JSON з event_type FileGenerationRequested і payload user_id/expire_date у file_generation_queue. correlation_id та reply_to — властивості AMQP, не колонки БД.
+4. [Підпрограма → Процес] Після publish відкрити iterator callback-черги. `ReplyDeadline := MonotonicNow + 30 s` — математичний запис одного спільного asyncio.timeout(30) лише для очікування reply та оброблення повідомлень усередині цього контексту. Connect, створення черги, publish і відкриття iterator відбуваються раніше та цим таймером не обмежуються.
+5. [Підпрограма → Рішення] `Msg := ReceiveWithinReplyTimeout`. Якщо `Msg.correlation_id ≠ CorrelationId`, підтвердити повідомлення та перейти до наступного отримання без перезапуску таймера. За збігу виконати `URL := DecodeUTF8(Msg.body)` і підтвердити повідомлення. Спільний ReplyDeadline обмежує цикл; помилка декодування або таймаут переходять до RPC-помилки.
+6. [Підпрограма → Дані → Термінатор] Вийти з відкритих контекстів RPC. Успіх — 200 з download_url. Вміст reply передається після UTF-8 декодування без окремої IsURL-перевірки або перевірки порожнього рядка. Помилка з’єднання, publish, очікування, декодування чи завершення RPC передається маршруту та перетворюється на 500 FILE_GENERATION_FAILED.
 
-**Межа моделі:** вихідний адаптер використовує 30 с тільки навколо очікування reply після publish і повертає UTF-8 рядок без явної IsURL-перевірки. Загальний deadline та валідація URL тут — цільові уточнення алгоритму згідно із SRS і цільовою C4 Component, не твердження про зміну адаптера. Для загального deadline потрібні окремі тести з зависанням connect/publish/read/cleanup. HTTP-формат успіху та помилок збережено. Валідація OpenAPI не є таким runtime-тестом.
+**Межа таймера:** 30 с тут не є загальним deadline HTTP-запиту. [REL-05](srs.md#srs-nfr-rel-05) залишається окремим цільовим критерієм приймання з ЛР №5 і не зображається як уже наявний алгоритм. Таймаут не скасовує віддалену збірку; автоматичний повтор, outbox та exactly-once не передбачені. Помилка збірки без reply призводить до завершення очікування за таймаутом. Закриття контекстів не містить доданого циклу повторних спроб.
 
 ```mermaid
 graph TD
     S([Початок]) --> I[/Ввід: access JWT/]
-    I --> T[Deadline := MonotonicNow + 30 s]
-    T --> V[[V := ValidateJWT]]
+    I --> V[[V := ValidateJWT]]
     V --> AUTH{V.ok = TRUE}
     AUTH -->|Ні| UN[/Вивід: 401/]
     UN --> E([Кінець])
-    AUTH -->|Так| L[[L := FindActiveLicenseBeforeDeadline]]
+    AUTH -->|Так| L[[L := FindActiveLicenseForUser]]
     L --> HAS{L ≠ NULL}
     HAS -->|Ні| DENY[/Вивід: 403 NO_ACTIVE_LICENSE/]
     DENY --> E
-    HAS -->|Так| INIT["ExpireDate := FormatUTC(L.expires_at); CorrelationId := UUID; URL := EMPTY"]
-    INIT --> CONNECT[[Callback := OpenExclusiveReplyQueueBeforeDeadline]]
-    CONNECT --> PUB[[R := PublishBuildRequestBeforeDeadline]]
-    PUB --> LOOP{MonotonicNow &lt; Deadline AND URL = EMPTY}
-    LOOP -->|Так| WAIT[[Msg := ReceiveBeforeDeadline]]
+    HAS -->|Так| EXP["ExpireDate := FormatUTC(L.expires_at)"]
+    EXP --> CONNECT[[Connection := OpenRabbitConnection]]
+    CONNECT --> QUEUE[[Callback := OpenChannelAndExclusiveReplyQueue]]
+    QUEUE --> INIT["CorrelationId := UUID; Request := BuildRequest(V.user_id, ExpireDate)"]
+    INIT --> PUB[[Published := PublishBuildRequest]]
+    PUB --> ITER[[Iterator := OpenReplyIterator]]
+    ITER --> TIMER[ReplyDeadline := MonotonicNow + 30 s]
+    TIMER --> WAIT[[Msg := ReceiveWithinReplyTimeout]]
     WAIT --> ID{Msg.correlation_id = CorrelationId}
     ID -->|Ні| ACK[[Ack := AcknowledgeMessage]]
-    ACK --> LOOP
+    ACK --> WAIT
     ID -->|Так| DECODE["URL := DecodeUTF8(Msg.body)"]
-    DECODE --> VALID{"IsURL(URL) AND URL ≠ EMPTY"}
-    VALID -->|Ні| FAIL[/Вивід: 500 FILE_GENERATION_FAILED/]
-    VALID -->|Так| DONE[[Ack := AcknowledgeMessage; Closed := CloseReplyResources]]
-    DONE --> OUT[/Вивід: 200; status := success; download_url := URL/]
+    DECODE --> MATCH[[Ack := AcknowledgeMessage]]
+    MATCH --> CLOSE[[Closed := CloseRPCContexts]]
+    CLOSE --> OUT[/Вивід: 200; status := success; download_url := URL/]
     OUT --> E
-    LOOP -->|Ні| FAIL
+    L -. Помилка .-> DBERR[/Вивід: 500; необроблена помилка до RPC/]
+    EXP -. Помилка .-> DBERR
+    DBERR --> E
+    CONNECT -. Помилка .-> FAIL[[Closed := UnwindOpenedRPCContexts]]
+    QUEUE -. Помилка .-> FAIL
+    PUB -. Помилка .-> FAIL
+    ITER -. Помилка .-> FAIL
     WAIT -. Таймаут OR помилка .-> FAIL
-    CONNECT -. Таймаут OR помилка .-> FAIL
-    PUB -. Таймаут OR помилка .-> FAIL
-    L -. Таймаут OR помилка .-> FAIL
     ACK -. Помилка .-> FAIL
     DECODE -. Помилка .-> FAIL
-    DONE -. Помилка .-> FAIL
-    FAIL --> CLEAN[[Closed := CloseReplyResources]]
-    CLEAN --> E
-    CLEAN -. Помилка .-> E
+    MATCH -. Помилка .-> FAIL
+    CLOSE -. Помилка .-> FAIL
+    FAIL --> RPCERR[/Вивід: 500 FILE_GENERATION_FAILED/]
+    FAIL -. Помилка закриття .-> RPCERR
+    RPCERR --> E
 ```
 
-[Інтерактивна схема](https://mermaid.live/view#pako:eJydVd1O1EAUfpVJL8xuhGUVTcxuMCntINVuu5Z2CSmbTWkHaCidtT8CWbjBRGPilRdcmBiMT0CMJoqIr9B9BZ_EM9N22SUI6ibNNjPf-eY753xzOhBc6hGhIWxETn8TmfJqiOC3VLGz4-x8-Co7GR5m59lpt4qmpx8ixZ7J3mafhkfZ5wZyXJfEMXq8bM508zCFg0xbJo4X-CFBjTnUoiFNaOi7Gt1Bt9FsHcUF2uTojm13GK7jBL7nJATougWgwwGiZS4OOjW6heaQaVj4IN9ky2x_P3s_PNpHlsalfS3F3avfKVVZGufBkNM72PyRfRm-HL7pVi_zfMxOstN9pNq2ygQt-KEnuon_nKi-S8KYzJN1GpEyt1KkyskXxaWBin69_oA0S1ULibA4plDG2spljbNI03uiZCod3FMVCWtLuFTN4LnuS2SFTEVTTHtVwLt9H0RB4bhmGm07iWVKFbVG-E7cc5JqE0k0ikjgJD4NFY8hLUuRm8gyeKq41TZXVoWyi8DMT5Z0TcOSaduSEwRrjrvFsHqfhHjXDdIYKmOQfrD3NCXpH4pTMHC2tjVv2wajaKdrgR9vzqd-4BnkWUri5OpwCOGhqq63BxNGuhUkTTSymajJPJUik6L8LGqiZMsilMxuxRtMhEFcAhlcfTBD5oaXB4CvuRfl6_kenDNRz-I8RR7rtig9sW0xLxn8hXQnIN4GacGNcTZG5wBqlOAkSSFZxpIuY-hz0SmZsPtqmQsPKkzXGvX2qqPG5eD8VokqSF8VlBgCK_BUR0ViJi0aXgjn4DHtC6KiTjr1fr2OFhQV9x5hDRuiqehaj6GwXNp1jKOUrmv4mhKAJwMaE25G_sa9ZJCYphHMlbJCjIVnpFvmpKa79XoTxYmTpDHjiFM-jprIozthQB2vl0YBd7qhliKBY_xKXRhklPZ4-2uIp_ItO4Mp-GJ4iHQDZT9hGp6BiO_ZaXaCakB2ETZy-z9HcqP_c5T6HzHccRB1fA2m9NFNMN6aG0DsLR8mKhY1GCV_03SOHe9UsXDlWQARpoRtApPP94TGQEg2yTb7pHlk3UmDRDiYEpw0oUt7oSs0kiglU0LaZ58a2Xfgs7edLx78Btvrj9E). [Код](diagrams/algorithm-vip-download.mmd).
+[Інтерактивна схема](https://mermaid.live/view#pako:eJyNVe1u40QUfZWRf7WimxYWJJRqkVx7Qg2O03XsFORW0cQeGmsdT7DHtFVaCRUJhISExI_9gYRAPEFAu2IpUF5h_Ao8CXfGdj5KVyGREnvmnHPv3Dl3ZqaFLKJaWzvLyHSMPPMkRfDpbwXiR3FXfiXm5Y24E7en2-jRo_eQFeyK78Sv5XPxoo1IGNI8Rx8ce7unFc1SoEEQDFD7CRqQJI4IpwA4rQEDBdB973A2aLFn6AnyXB9fV5NyWM5fiR_K51fId1SwV024t_febOL4jtLBkOX3MPmXeFl-WX5zun1f52cxF7dXyA4CWybUidNID3n8GbXjkKY57bDMz2nWZGcr1UO9P7PRP1__hBzftuvcYHAlNRM7H99P7jFyekPd8KwBHtqWgZ0-btKV8Crhe2J1fvijo-BEwxfTOKMmFEzlyrIJ4b5nbNktqmbyIeHbJ1qtCRwlafQcBxteEBgsTSksjqWS3pvS1CWjUcyX480ya4qiP_Wxj4FMkmREwmcN1RgTYCV6GuGLMClyKJlLp8nl04IWtNFR3MoWjuXBCgyWZTQhMpYVSSnft8x95NJPC5pzOXBQxElUv28NWgUUfxhHO2i59uUKpahSP_IPguCoGCVxPqZKt35ZVWuSAnCVkofdILA4zQhn2aIkchHNYEORUMXxrC6QFMakJEriVG1Fl6WMszQOHXaO3kCP91BeMxVBUY91qEDQzc8kwaUhhYodx3wcVyG9eEJZsUhSoqsszRlwWuGycFAO6Iq1StYWtMwVB-rGh0GgVxsGfyk7T2h0RrvQkORssUOAWmS3LlI7z8RGz8Swdb6rOsSk8jjwvc67WzKvEYsulxtSgZVgV_eMw_-RgMJVPrV7fWm0hOXVHqon98gAf3J6wfOFOyVQUXq-t95kb-3t7aOcE17kUiEv1AG0jyJ2niaMRMMiS5TtXLtpPdBY7Tzo8BaSJ5v4E2T_ELdijlowbR5g110P9o4MJo8WAP9Sfi5_gfASRuZI_L2mIF6IOwRL2V3tzdfHqaspH1dzW7Tlg8yObtmr5fPTczjNpKdp9EAV6958rdRKs2zAVN2xAVQZGkDSV78DbF5-Ud6gnnu_VOs05c8N0o3rNsBqp21A1ebagJJPamegsA_5AnUsGw_fxw52dc_qOUNJwGaz_RX9PzHEb7LnwEmvyhv4fquCVhEqXvXcWELb0SYU7oA40tozjY_pRF7TEf2EFAnXrnc0UnDWv0xDrc2zgu5oxVRetmZM4CqfVIPX_wLA5-fv). [Код](diagrams/algorithm-vip-download.mmd).
 
 ## 2.7. Інтеграційний аудит та верифікація цілісності доменів
 
@@ -557,7 +562,7 @@ graph TD
 | id у check | integer/int32 | licenses.id INT | A2 повертає L.id; не user_id |
 | user у check | nickname string | users.nickname VARCHAR(50) через HTTP | A2: MTGVIP лише для порожнього nickname, не для відсутнього профілю |
 | expire_date | AMQP string date-time або null | licenses.expires_at TIMESTAMPTZ nullable | A3 UTC serialization; lifetime зберігає null |
-| correlation_id/reply_to | Властивості AMQP | Тимчасова координація, не таблиці | A3 зіставлення reply та deadline |
+| correlation_id/reply_to | Властивості AMQP | Тимчасова координація, не таблиці | A3 зіставлення reply та спільний reply-timeout |
 | download_url | HTTP string/uri; AMQP UTF-8 string | Файл Distribution; не колонка License DB | A3 результат генерації, не сутність OAuth |
 | Агрегати Usage | Поза трьома вибраними HTTP-операціями | launches.device PC/MOBILE; hwid 5–255 | Не ототожнюються з A2.device HWID 2–100 |
 
@@ -568,7 +573,8 @@ graph TD
 3. Уточнено id ліцензії, HWID vs PC/MOBILE, Activate length vs Check regex. Жодного UUID замість INT або required-колонки для force/valid не додано.
 4. Початковий алгоритм приховував два commit. A1 тепер показує часткове завершення; A2 — commit пристрою до HTTP-профілю. Опис не гарантує відкат уже записаних змін.
 5. Відокремлено AMQP metadata від JSON payload, а reply URL — від HTTP JSON. Для nullable expiry збережено передачу null без штучного рядка "None".
-6. У A3 явно відокремлено цільовий загальний deadline 30 с і URL-валідацію від вихідного reply-only timeout. Ціль відповідає REL-05 та C4 Component; код у межах ЛР не змінюється.
+6. A3 приведено до вихідної послідовності: 30 с лише на reply після publish, без доданої URL-валідації. Звичайний 500 до RPC відокремлено від FILE_GENERATION_FAILED. Загальний deadline REL-05 залишено окремим цільовим критерієм.
+7. Для download прибрано непідтверджений 422; для activate/check його збережено. Описано DELETED, очищення auth-артефактів і два наявні CASCADE без додавання FK.
 
 #### Інструментальна перевірка та межі приймання
 
@@ -577,7 +583,7 @@ graph TD
 - OpenAPI 3.0.3 перевірено валідатором; локальні $ref та приклади запитів/відповідей перевірено за схемами. Runtime-секрети і дані користувачів не використовувалися.
 - Перевірено відносні посилання на [SRS](srs.md), [ADR](adr/0001-choice-of-technology.md), схеми та контракт; дані й алгоритми трасовано до функціональних вимог.
 
-**Умови приймання реалізації:** конкурентна активація одного ключа й квоти, відновлення покупки після часткового commit, захист nullable/неприпустимих станів, точність фінансових сум, загальний deadline connect/publish/reply/cleanup та відхилення некоректного URL. Це відкриті критерії верифікації реалізації; вони не приховуються під статусом Done для документації. Відсутність outbox/дедуплікації збережено як компроміс ADR-001. Додавання Kafka, CQRS або нових сервісів для виконання ЛР не потрібне.
+**Умови приймання реалізації:** конкурентна активація одного ключа й квоти, відновлення покупки після часткового commit, захист nullable/неприпустимих станів, точність фінансових сум, загальний deadline connect/publish/reply/cleanup за окремим цільовим REL-05. Наявний алгоритм A3 обмежує лише reply; додаткова IsURL-перевірка до нього не приписується. Це відкриті критерії верифікації реалізації; вони не приховуються під статусом Done для документації. Відсутність outbox/дедуплікації збережено як компроміс ADR-001. Додавання Kafka, CQRS або нових сервісів для виконання ЛР не потрібне.
 
 
 ### Нормативні технічні джерела
