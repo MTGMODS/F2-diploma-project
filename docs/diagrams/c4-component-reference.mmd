@@ -1,0 +1,51 @@
+flowchart TB
+  Caller["Other containers: Gateway / боти"]
+  UserAPI["Other container: User Service"]
+  PG[("Other container: License PostgreSQL")]
+  Redis[("Other container: Redis")]
+  MQ["Other container: RabbitMQ"]
+  subgraph License["Container boundary: License Service / Python FastAPI"]
+    subgraph Inbound["Inbound / API"]
+      Routes["Component: REST routers<br/>client / user / admin / bot / stats"]
+      DTO["Component: Pydantic DTO<br/>domain.schemas"]
+      Guards["Component: JWT / ADMIN / bot-token guards<br/>Depends за маршрутом"]
+    end
+    subgraph Application["Application / бізнес-логіка"]
+      Service["Component: LicenseService<br/>Активація / чинність / пристрої"]
+      Stats["Component: LicenseStatsService<br/>Публічні агрегати"]
+      Worker["Component: Expiry worker<br/>Завершення підписок / команди"]
+    end
+    subgraph Infra["Infrastructure / Outbound"]
+      Repo["Component: LicenseRepository / TransactionRepository<br/>SQLAlchemy ORM"]
+      Client["Component: UserServiceClient<br/>HTTP adapter"]
+      Messaging["Component: messaging functions<br/>aio-pika RPC / topic publish"]
+      Cache["Component: PublicStatsCache<br/>Redis loader / refresh lock"]
+      DB["Component: AsyncSession factory<br/>get_db / AsyncSessionLocal"]
+    end
+    Errors["Cross-cutting: DomainException / Validation handlers<br/>HTTPException: стандартний FastAPI handler"]
+    Log["Cross-cutting: logging / stdout<br/>Розподілений tracing не заявлено"]
+  end
+  Caller -->|"HTTP / JSON"| Routes
+  Routes -->|"FastAPI: валідація параметрів"| DTO
+  Routes -->|"Depends: JWT або ADMIN або bot-token"| Guards
+  Routes -->|"Depends: AsyncSession"| DB
+  Routes -->|"Python: LicenseService(db), method call"| Service
+  Routes -->|"Python: LicenseStatsService(cache)"| Stats
+  Routes -->|"Python await: download RPC після перевірки"| Messaging
+  Service -->|"Python: створення concrete repositories"| Repo
+  Service -->|"Python: concrete client call"| Client
+  Stats -->|"Python: cache.get(loader)"| Cache
+  Stats -->|"Python: loader / repository call"| Repo
+  Worker -->|"Python: create / await / commit"| Repo
+  Worker -->|"Python: AsyncSessionLocal"| DB
+  Worker -->|"Python: social IDs lookup"| Client
+  Worker -->|"Python await: publish commands"| Messaging
+  Cache -->|"RESP / TCP"| Redis
+  Repo -->|"SQLAlchemy / SQL / TCP"| PG
+  Client -->|"HTTP / JSON: x-internal-token"| UserAPI
+  Messaging -->|"AMQP / TCP: correlation ID / reply_to"| MQ
+  Routes -.->|"Exception dispatch"| Errors
+  Service -.->|"DomainException"| Errors
+  DTO -.->|"RequestValidationError"| Errors
+  Service -.->|"Python logging"| Log
+  Messaging -.->|"stdout: технічні події"| Log
