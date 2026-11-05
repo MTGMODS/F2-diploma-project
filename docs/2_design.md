@@ -226,10 +226,368 @@ Transactional outbox, кластерний broker і distributed tracing не д
 - Чисельні обмеження збережено в [SRS-NFR](srs.md#3-non-functional-requirements--нефункціональні-вимоги); окремі [Verification Criteria](srs.md#4-verification-criteria--критерії-верифікації) називають інструменти й негативні сценарії.
 - Mermaid-код є первинним артефактом; відповідні `.mmd`-файли та блоки Розділу 2 повинні залишатися синхронізованими.
 - Для незалежного інтерактивного перегляду наведено Mermaid Live; той самий код зберігається в Git. Перегляд у Mermaid Live не підміняє перевірку Mermaid Preview безпосередньо в GitHub, передбачену Завданням 5.
-- Статус архітектурного етапу — In Progress: виконано документування, очікується рев’ю. Вимірювання NFR і виправлення обмежень коду не позначено завершеними.
+- Статус документування архітектури, даних та алгоритмів — Done у ЛР №6; викладацьке рев’ю виконується під час захисту. Вимірювання NFR і виправлення обмежень коду не позначено завершеними.
 
 ## Джерела
 
 - [C4 Model: рівні моделювання](https://c4model.com/diagrams).
 - [C4 Container: застосунки та сховища](https://c4model.com/diagrams/container).
 - [Mermaid: синтаксис](https://mermaid.js.org/intro/syntax-reference.html).
+
+
+
+
+
+
+
+## 2.4. Проєктування та моделювання баз даних
+
+### Межі володіння та специфікація
+
+Реляційна модель містить 7 таблиць і 47 полів. User Service володіє users, oauth_handoffs і refresh_sessions; License Service — licenses, license_activations і transaction_purchases; Usage Service — launches. У Distribution Service власної БД немає. Префікси USER/ LICENSE/ USAGE нижче означають окремі БД, не PostgreSQL-схеми одного сервера.
+
+Фізичні FK у ERD відокремлено від логічних посилань; user_id в інших таблицях є логічним посиланням, а не вигаданим міжбазовим обмеженням. `device` таблиці license_activations — HWID; `device` таблиці launches — PC/MOBILE. Кратності враховують nullable FK. `..` позначає неідентифікувальний зв’язок, не «віртуальний FK». Статус DELETED зберігає рядок користувача; це не SQL DELETE. Очищення сесій виконується за expires_at, а фізичні каскади стосуються видалення ліцензії. Повний опис наведено у [життєвому циклі даних](data/schema.md#життєвий-цикл-користувача-сесій-та-каскади).
+
+```mermaid
+erDiagram
+    USER_users {
+        int id PK "NOT NULL"
+        bigint telegram_id UK "NULL allowed"
+        bigint discord_id UK "NULL allowed"
+        varchar(50) nickname "NOT NULL"
+        varchar avatar_url "NULL allowed"
+        varchar(20) role "NOT NULL"
+        user_status status "NOT NULL"
+        timestamptz created_at "NULL allowed"
+        timestamptz last_login_at "NULL allowed"
+    }
+    USER_oauth_handoffs {
+        varchar(64) ticket PK "NOT NULL"
+        text payload "NOT NULL"
+        timestamptz expires_at "NOT NULL"
+    }
+    USER_refresh_sessions {
+        int id PK "NOT NULL"
+        int user_id "NOT NULL"
+        varchar(64) token_hash UK "NOT NULL"
+        timestamptz expires_at "NOT NULL"
+    }
+    LICENSE_licenses {
+        int id PK "NOT NULL"
+        int user_id "NULL allowed"
+        varchar key UK "NOT NULL"
+        int duration_days "NULL allowed"
+        int reset_limit "NOT NULL"
+        int max_devices "NOT NULL"
+        license_status status "NULL allowed"
+        timestamptz created_at "NULL allowed"
+        timestamptz activated_at "NULL allowed"
+        timestamptz expires_at "NULL allowed"
+    }
+    LICENSE_license_activations {
+        int id PK "NOT NULL"
+        int license_id FK "NULL allowed"
+        varchar device "NOT NULL"
+        varchar ip_address "NULL allowed"
+        varchar user_agent "NULL allowed"
+        timestamptz first_used_at "NULL allowed"
+        timestamptz last_used_at "NULL allowed"
+    }
+    LICENSE_transaction_purchases {
+        int id PK "NOT NULL"
+        int user_id "NULL allowed"
+        int license_id FK,UK "NULL allowed"
+        float amount "NOT NULL"
+        varchar payment_method "NOT NULL"
+        varchar status "NULL allowed"
+        timestamptz purchased_at "NULL allowed"
+    }
+    USAGE_launches {
+        int id PK "NOT NULL"
+        varchar version "NOT NULL"
+        varchar device "NOT NULL"
+        varchar hwid "NOT NULL"
+        int server "NULL allowed"
+        varchar mode "NULL allowed"
+        timestamptz launched_at "NULL allowed"
+    }
+    LICENSE_licenses |o..o{ LICENSE_license_activations : "license_id / CASCADE"
+    LICENSE_licenses |o..o| LICENSE_transaction_purchases : "license_id / UNIQUE / CASCADE"
+```
+
+[Інтерактивний ERD](https://mermaid.live/view#pako:eJy1VtuO2jAQ_RXLT10Jbauq7QNviKXVqoheKG9I1jSeEIvYjmyHhbL8eyeQtNxyoZe8REqOj2fOnBl7yyMrkfc5ugcFCwd6bhg9s-noq8g9Os-2hy_Fo0xgSrLPH9mcTz59Y5PZeDznv_9_V4sCEjDFgkoQdrbHEo5BmtonlFfwUvnIOtkKX4GLEnAv3r66Y0ZFSwMaayIpoQxWEMCJ3KUdeF8Tr7NpHWchh_ABQu5Z-boODEojAXQWfrDIIQSUAkJDAMcLUvBBpJaEqV-zOyqShTwkIgEjbRyfVKtK692bO9ohWmKor1zAdWAZbFILskNWuM6UQ19GeAY-js5hTLhEePReWXOTm4r_e81VXUgnGdolGtLBJ6WJ_kEK48fhaDIdiVRFaCiFv4i-2XpsiZv6sPc9kjsIpKCQsPENhAWW0kLykNLqWm4VSsNaSFxRanU-LtO-9HwHG9_se4iCWt225LSE9X1yVkZRbvUnfqwoCPe-w6hiB4FbhpTKBEhJmTSJW4H3noIFmq4qxcrRRKFltw6h5iVn2gYHxhfCkkWzvAj1v_TLRQ16jSdGTPMsMNA2N3WtUOlKw0-TqEJjSGzLwLmtFSo52sWcTQcfyKaQmyi5Tb0qsBWd2FSCFlQnVyZPtXO3iIZKRZt1MKymC0Zn2-0z7-66X4P52d7f221jp_eJ8sg6L9lwMB0OHkYV9XXO5xaHX7DOJo9fZqNjet7jGp0GJXl_y0OCurhwSYwhTwPf9Tid4Ha6MRHvB5djj-eZpEFY3scOH3c_Ad25-_E). [Код ERD](diagrams/erd.mmd).
+
+Повний [словник усіх полів, обмежень та індексів](data/schema.md) містить нормалізацію, каскади, типи та план оптимізації. [DBML-копія](data/er-model.dbml) відображає ту саму SQL-модель. [SRS](srs.md) задає бізнес-обмеження, які не слід плутати з фізичними CHECK/FK.
+
+### Допоміжна Key-Value модель Redis
+
+Redis не зберігає облікові записи чи ліцензії як основне джерело даних. Це кеш агрегатів і короткочасне блокування перерахунку. JSON envelope містить `data` та числовий `fresh_until` (Unix seconds). Значення lock — випадковий hex-токен власника; звільнення перевіряє токен через Lua.
+
+Ключі наборів: `mtgmods:license:public_stats:v2`, `mtgmods:license:old_stats:v3`, `mtgmods:usage:public_stats:v2`; lock має суфікс `:lock`. Fresh — 300 с, граничне збереження — 86400 с. Для License lock TTL 120 с / generation timeout 90 с; для Usage 330 с / 300 с. Cold wait 4 с, poll 0.1 с; Redis connect/socket timeout 0.5 с. Окремих вторинних індексів у Key-Value моделі немає: доступ за точним ключем. Це допоміжна схема, а не додаткові постійні таблиці.
+
+```mermaid
+classDiagram
+    class CacheEnvelope {
+        +object data
+        +number fresh_until
+    }
+    class RedisCacheKey {
+        +string key
+        +string JSON_value
+        +integer retention_seconds
+    }
+    class RedisLockKey {
+        +string key_suffix_lock
+        +string owner_token_hex32
+        +integer ttl_seconds
+    }
+    RedisCacheKey "1" --> "1" CacheEnvelope : JSON serialization
+    RedisCacheKey "1" .. "0..1" RedisLockKey : refresh coordination
+```
+
+[Інтерактивна Redis-модель](https://mermaid.live/view#pako:eJx1UrtuwzAM_BWBaxOjj81Dl7ZLWrRAsxoQFIm21chSIFFpUiP_Xvkx2EjMiTgSdzySLUinEHKQRoTwqkXlRVNYlqJH2IuQNb7ZIxp3QNYOpS7u3O4HJTElSExQG5sdelZ6DDWPlrQZipcp6TcqHXrmdzzPSAN5bSu2x_M1uNl-ffKjMBEnNW0JqyTokTCpOcsDSmdVWJL9cHK_rMpDLEt94iZ1XTe4X4uek9uj5TWenh5vDEJkbo4w91zAQwFsvX4es_ma894rC-i1MPpPdL6WWbIsJfdZ1uUzi3naSn8IJp3zStuRCFbQoG-EVpC3QDU23QcoLEU0BJcViEhue7YScvIRVxAP6co4fscAXv4BGJa4CQ).
+
+## 2.5. Специфікація міжсервісних контрактів (API)
+
+**Контейнери:** Web Frontend → API Gateway → License Service для activate/download; клієнт зовнішнього цифрового продукту → API Gateway → License Service для check. Супутній обмін License → Distribution через RabbitMQ описано як AMQP-повідомлення, а не вигаданий REST-маршрут. [ADR-001](adr/0001-choice-of-technology.md) пояснює вибір брокера.
+
+Деталізовану специфікацію трьох інтерфейсів OpenAPI 3.0.3 зафіксовано у [openapi.yaml](api/openapi.yaml). Вона містить request/response schemas, access JWT, 4xx/5xx, приклади та обмеження. Це цільовий обсяг ЛР №6, не повний каталог усіх API системи.
+
+| POST відносно https://api.mtgmods.com/v1 | Авторизація | Побічна дія / результат |
+|---|---|---|
+| /license/activate | Bearer access JWT | Власник з sub; активація, force-конфлікт 409, окремий commit покупки |
+| /license/check | JWT не потрібен; секретний key у TLS body | Реєстрація/оновлення HWID; valid/user/id ліцензії |
+| /license/download | Bearer access JWT; без request body | Запит генерації, correlation_id/reply_to, download_url |
+
+Gateway переписує публічний `/v1/license/...` у внутрішній `/api/v1/license/...`; тому DomainError.path може містити внутрішній шлях. POST збережено: activate і download виконують команди, а check записує пристрій. Перейменування на GET спотворило б семантику побічної дії й винесло секрет у URL.
+
+JWT-помилка має `{detail}`, доменна/DTO — `{error_code,message,timestamp,path}`, клієнтська check — власні сумісні структури. Для activate/check валідація DTO повертає 422; у download немає body/path/query DTO, тому 422 для нього не оголошується. Загальний 500 та 502/504 проксі можуть бути text/plain або text/html; єдиного JSON для всіх збоїв не обіцяється. Зайві DTO-поля не оголошено забороненими: Pydantic за замовчуванням їх ігнорує.
+
+Ключ: 16 символів A–Z/0–9 у чотирьох групах, 19 символів разом із дефісами. Activate DTO перевіряє довжину; check DTO — також regex. `force` є командою, `valid` — обчисленим результатом, `download_url` — результатом RPC; відповідних колонок у БД не потрібно. `expire_date` повідомлення відповідає nullable licenses.expires_at у UTC. Відповідь AMQP — рядок URL UTF-8, не JSON-об’єкт. Валідація специфікації та прикладів виконується без реальних активацій або платних завантажень.
+
+
+## 2.6. Моделювання логіки критичних вузлів
+
+Оператор присвоювання — `:=`, рівність в умовах — `=`, логічні зв’язки — `AND`, `OR`, `NOT`. Термінатори позначають початок/кінець, паралелограми — ввід/вивід, прямокутники — процеси, ромби — рішення, подвійні прямокутники — підпрограми вводу/виводу. Пунктирні переходи показують винятки. HTTP-відповіді визначає [OpenAPI](api/openapi.yaml).
+
+### A1. Активація ключа і завершення обліку покупки
+
+Трасування: [FUN-07](srs.md#srs-fun-07), [FUN-25](srs.md#srs-fun-25), [FUN-26](srs.md#srs-fun-26), [FUN-27](srs.md#srs-fun-27). Сутності: licenses, transaction_purchases. Це послідовний сценарій; він не доводить захист від конкурентного запису.
+
+1. [Термінатор → Дані → Підпрограма] Прийняти JWT, key, force; `V := ValidateJWTAndDTO`. Неприпустимі облікові дані завершують сценарій із 401, некоректний DTO — із 422.
+2. [Підпрограма → Рішення] `L := FindLicenseByKey`. Умова продовження: `L ≠ NULL AND L.status = NOT_ACTIVATED`; інакше 400 INVALID_KEY.
+3. [Підпрограма → Рішення] `Old := FindActiveLicenseForUser`. За `Old ≠ NULL AND NOT force` повернути 409 ACTIVE_LICENSE_EXISTS. За підтвердженого force виконати `Old.status := EXPIRED`, `Old.expires_at := NowUTC`.
+4. [Рішення → Процес] За `L.duration_days = NULL` виконати `Expiry := NULL`, інакше `Expiry := NowUTC + Days(L.duration_days)`. Встановити власника з JWT, ACTIVE, час активації й Expiry.
+5. [Підпрограма] `R1 := CommitActivation`. Зміни старої та нової ліцензії входять до цього commit. Помилка завершує HTTP з 500; за втратою з’єднання після commit результат перевіряється окремим читанням, без сліпого повтору.
+6. [Підпрограма → Рішення] `Tx := FindPurchaseByLicense`. Якщо покупки немає, відразу повернути 200. Інакше виконати `Tx.user_id := V.user_id`, `Tx.status := COMPLETED`, `Tx.purchased_at := NowUTC` та `R2 := CommitPurchase`.
+7. [Дані → Термінатор] Успіх — 200. Збій читання/завершення покупки після першого commit — 500 з уже можливо активною ліцензією. Розподіленої транзакції й автоматичної компенсації тут немає.
+
+Порожній ключ і null відхиляє DTO. Циклів немає. Помилки БД обробляються на межі HTTP; не приписується уніфікований JSON для необробленого 500. Конкурентне блокування/повторне узгодження покупки — критерії подальшої реалізації та тестування, а не можливості блок-схеми.
+
+```mermaid
+graph TD
+    S([Початок]) --> I[/Ввід: JWT, key, force/]
+    I --> V[[V := ValidateJWTAndDTO]]
+    V --> Q{V.ok = TRUE}
+    Q -->|Ні| VE[/Вивід: V.http_status/]
+    VE --> E([Кінець])
+    Q -->|Так| L[[L := FindLicenseByKey]]
+    L --> K{L ≠ NULL AND L.status = NOT_ACTIVATED}
+    K -->|Ні| BAD[/Вивід: 400 INVALID_KEY/]
+    BAD --> E
+    K -->|Так| A[[Old := FindActiveLicenseForUser]]
+    A --> C{Old ≠ NULL AND NOT force}
+    C -->|Так| CON[/Вивід: 409 ACTIVE_LICENSE_EXISTS/]
+    CON --> E
+    C -->|Ні| H{Old ≠ NULL}
+    H -->|Так| O[Old.status := EXPIRED; Old.expires_at := NowUTC]
+    H -->|Ні| D
+    O --> D{L.duration_days = NULL}
+    D -->|Так| N[Expiry := NULL]
+    D -->|Ні| T["Expiry := NowUTC + Days(L.duration_days)"]
+    N --> SET
+    T --> SET[L.user_id := V.user_id; L.status := ACTIVE; L.activated_at := NowUTC; L.expires_at := Expiry]
+    SET --> C1[[R1 := CommitActivation]]
+    C1 --> OK1{R1.ok = TRUE}
+    OK1 -->|Ні| F[/Вивід: 500; стан commit перевіряється окремо/]
+    F --> E
+    OK1 -->|Так| P[[Tx := FindPurchaseByLicense]]
+    P --> HAS{Tx ≠ NULL}
+    HAS -->|Ні| RES[/Вивід: 200 success/]
+    HAS -->|Так| UP[Tx.user_id := V.user_id; Tx.status := COMPLETED; Tx.purchased_at := NowUTC]
+    UP --> C2[[R2 := CommitPurchase]]
+    C2 --> OK2{R2.ok = TRUE}
+    OK2 -->|Так| RES
+    OK2 -->|Ні| PART[/Вивід: 500; активація вже записана/]
+    PART --> E
+    RES --> E
+    L -. Помилка .-> F
+    A -. Помилка .-> F
+    P -. Помилка .-> PART
+```
+
+[Інтерактивна схема](https://mermaid.live/view#pako:eJx9VW1L21AU_iuXfFJWa1u2D6s4iEmKWbO0NmnmSEsISVyD9oU02SxRUD84BoIwhh8GY2O_oMjcxE39Czd_Yb9k594kbeJ0-XbveXKe55zn3HtDxhraDlNlXnvmqIdUvjNA8CkLOv6Cb6J3eBod4Rt81V1ES0vPkKgv4w_4PDrD36vo-Uu1gLadSQFtDT3LWe7G_4oUqem6hqqrSDN3XNv0HQCzA5tXG90EplHYRqgVh9toFamttrAfRzZIZA9_js72kCZQxsuUUyv2fH9kjH3TD8YpoybQXAKI_gSwa3wRHUcn3cVcum94iq_2kKTrEtFVcwe25FrOYOysTerOJJUl0VT1UEJ_3n9FcluSECvzSCrGlKBUbqgGy6mixqoCn0iuZySvsXxe8-NSCYmyxkoib9SFV6lqwMWycykSmayuN3bsVChr-e4bJ5FbG3rtseOlglmahAsJPCcZdMbGJBq5HAHXkO-qfIpoWYIhiZwgK4IhbIqKqqR64Y-sXi5T8nqOPeFbz_E1SD1pE6EsYbMptgR-BZFtZ3fkes7YMH0Skodv2yrXzWWhNMlwNqgMPpSKduCZvjscGLY5odbM2fkcu6wLhGJC0wOomwPR5KreYTIgqgE9QjxkXrjDtNhhkgRxRxRBjZdqutSlYgAeGS61UEsXK_M5gu2422TPJP7CIbFzHSCRfGdifQk30MTWl3W9VSZhbtjvuz4bJwOx6YhwZQps1Mthq_zPcYPtTBtq-al4UiqtoOgQLoEpvkYWJUD4Fk7YAb4goOggOo0-RkfRCaBOEbkraOg3vkkHp5Ydmxlb4kxT19XddM6bgWf1THIik1lPK2jSFOusEgL47pyxSkZ_S1DyFVTg9I0Dy3LGs_ti9keiod0EDQ8YBoG5Y1zjRVMSVDK2sD9K1Nr3zW07lsxVwJzK3Jy0wpk1lcSaStiq3GNNJScUirsToDU32ZZ6j23kHzAONuEWPwarwJ5z_ANfIPwTYrf4MjoktuJp2hiSKGsW8GWXcDcWEXkXwN1L_Atf4SkqQrg2u4n-F24-ECaknQFTYPqO1zddm6mGjN9z-uRVsp0tM9jxmf0CYwb-UJkMLKbqe4FTYIIReVZ414SXqx9v7v8F8V980Q). [Код](diagrams/algorithm-activation.mmd).
+
+### A2. Перевірка ліцензії та квоти пристроїв
+
+Трасування: [FUN-09](srs.md#srs-fun-09), [FUN-10](srs.md#srs-fun-10), [SEC-03](srs.md#srs-nfr-sec-03). Сутності: licenses, license_activations; HTTP-профіль User Service. JWT для цього клієнтського інтерфейсу не додається.
+
+1. [Дані → Підпрограма] Прийняти key, device/HWID та транспортні IP/User-Agent. `V := ValidateCheckDTO`; некоректна довжина/формат або порожні дані завершують операцію з 422. Gateway може завершити її раніше з 429.
+2. [Підпрограма → Рішення] `L := FindLicenseWithDevices`. Відсутня ліцензія — 404 LICENSE_NOT_FOUND. Умова `L.status = BANNED OR L.status = EXPIRED OR L.status = NOT_ACTIVATED` — 403 з відповідним кодом.
+3. [Процес → Рішення] `Devices := L.devices`, `n := Length(Devices)`, `i := 0`, `found := FALSE`. Поки `i < n AND NOT found`, порівнювати `Devices[i].device = device`: збіг встановлює `found := TRUE`, незбіг — `i := i + 1`. Не більше n порівнянь; порожня колекція коректна.
+4. [Рішення] За `NOT found AND n ≥ L.max_devices` повернути 403 HWID_LIMIT_REACHED. Відомий HWID не витрачає нову квоту.
+5. [Підпрограма] `R := UpsertDeviceAndCommit`: для нового HWID створити запис, для відомого оновити IP, User-Agent і last_used_at. `first_used_at` зберігається. Після commit отримати профіль через User Service.
+6. [Рішення → Процес] `Profile = NULL` або помилка мережі/профілю завершують операцію сумісною відповіддю 400 `{valid:false,error:...}`. Для існуючого профілю з порожнім nickname виконати `Name := MTGVIP`; інакше `Name := Profile.nickname`.
+7. [Дані → Термінатор] Повернути 200 з valid true, user Name, id L.id. ID належить ліцензії. Запис пристрою може зберегтися навіть за наступної помилки HTTP-профілю.
+
+Безпосереднє порівняння expires_at з поточним часом не додається: стан змінює фоновий процес завершення ліцензій. Nullable status вихідної схеми та одночасні перевірки квоти є явними ризиками для тестування. Цей послідовний алгоритм не заявляє атомарність конкурентного upsert.
+
+```mermaid
+graph TD
+    S([Початок]) --> I[/Ввід: key, device, IP, UserAgent/]
+    I --> V[[V := ValidateCheckDTO]]
+    V --> Q{V.ok = TRUE}
+    Q -->|Ні| VE[/Вивід: 422 VALIDATION_ERROR/]
+    VE --> E([Кінець])
+    Q -->|Так| L[[L := FindLicenseWithDevices]]
+    L --> FOUND{L ≠ NULL}
+    FOUND -->|Ні| NF[/Вивід: 404 LICENSE_NOT_FOUND/]
+    NF --> E
+    FOUND -->|Так| ST{L.status = BANNED OR L.status = EXPIRED OR L.status = NOT_ACTIVATED}
+    ST -->|Так| DENY[/Вивід: 403; код стану ліцензії/]
+    DENY --> E
+    ST -->|Ні| INIT["Devices := L.devices; n := Length(Devices); i := 0; found := FALSE"]
+    INIT --> LOOP{i &lt; n AND NOT found}
+    LOOP -->|Так| EQ{"Devices[i].device = device"}
+    EQ -->|Так| YES[found := TRUE]
+    EQ -->|Ні| INC[i := i + 1]
+    YES --> LOOP
+    INC --> LOOP
+    LOOP -->|Ні| QUOTA{NOT found AND n ≥ L.max_devices}
+    QUOTA -->|Так| LIMIT[/Вивід: 403 HWID_LIMIT_REACHED/]
+    LIMIT --> E
+    QUOTA -->|Ні| SAVE[[R := UpsertDeviceAndCommit]]
+    SAVE --> P[[Profile := GetUserProfileByHTTP]]
+    P --> NULL{Profile = NULL}
+    NULL -->|Так| ERR[/Вивід: 400; valid := FALSE; error := Internal server error/]
+    NULL -->|Ні| NICK{Profile.nickname ≠ EMPTY}
+    NICK -->|Так| NAME[Name := Profile.nickname]
+    NICK -->|Ні| FALL[Name := MTGVIP]
+    NAME --> RES[/Вивід: 200; valid := TRUE; user := Name; id := L.id/]
+    FALL --> RES
+    RES --> E
+    ERR --> E
+    L -. Помилка .-> ERR
+    SAVE -. Помилка .-> ERR
+    P -. Помилка .-> ERR
+```
+
+[Інтерактивна схема](https://mermaid.live/view#pako:eJx9VV9r01AU_yqHPIjDrur0qWVC1ty5YJZkaZo5slJCc7eGtelI0-HI9qCCIvjkwwRBFMH3IYoy_3yGm6_gJ_Hcm9zYVDBPybm_8zu_8-8mU4bTkCot5TAJjkfgavsx4NO97rN37Ff-nF3mT9gvdtVfgdXVe6D7N9kr9im_YJ9bcERPGxDSk2hIG6DbDejNaKIe0ji92S9odOHk-b4HrXXwgnEUBintjOjwSHOtfonyBGon85rTI1gH1-mR8-Jkh5-csbf5xRl4RMT-JqPfXVsDTzV0TXV1yxwQx7EcGdcjgpJgFm8Q_ZN9yZ_lL_srNdYP7JJdnYHh-wZXtxnFoYGpxDO6G6UjTeQ1kxoNQbhp9UwtM-D3i_dg9gyjlCnMC1LNzSWpt-6CoXeI2SUD03IHAi-1mpuF1n-oSn1dNzOaszRI5zMszoZqmkQDy4EFI3lo684_Vh5J7bi6p7pEK5V23Rq3Rsy9Zal32sCusOWfIX-Mvb9kP_OnwL7nF_kz9gVL-RXfXkvxnGBRvuQXZdBN3fX3lbKSvMZGsxiXWRti8U3jw3R0vUSstCHi1lttOJjO41B0RTW6ZF-R84SMIpxhWXYWwbVxyplULBlmW3iVmXJELVeyk1Va_KhfKsE6FS_7SulI6uOxR7p-pYaPZr8OKzPt-EJ6BDfgdolAz0qrlN9ZsvxVKXh2eparZlUqIrEYp-0jVm4SPBqU1ZPbwdH1Wda3seTLDYWtXV0biLOBQ9TOFqmGTxgXG7jAKRR1Vdw73-G59Y5xvdOigmocdqaTSZTK_eA4wWP7vp1MD6Ix5T73acovhdKycbrlurZ0EYmLNcqkx_riVvHXegcdZzk3HJUTfqtUo9IGmiTThH_rcUqTOBgDCjihSXFQbV1FXmys3nkgVTTjaHgUBxMq1pxs2-6eVISomiJT3Sa-yaEYb9m9v-wkIqFKo3LZdu97ui2BSCZK4uDI1fJcq-XJh7ANc8yKf3Eq3JuwWK8olAnyOJKtsDjlPJadxmoufiK4CfzOZz8w8He8Ai6hyY8dZ7HD_8fY_wMoDWVCk0kQhUorU9IRnfD_TkgPgvk4Vc4bSjBPp93TeKi00mROG8r8mP8ttCjAf9OkMJ7_AT_gWaU). [Код](diagrams/algorithm-device-check.mmd).
+
+### A3. Координація VIP-завантаження через RabbitMQ
+
+Трасування: [FUN-12](srs.md#srs-fun-12), [REL-01](srs.md#srs-nfr-rel-01), [ADR-001](adr/0001-choice-of-technology.md). Сутності: активна licenses; повідомлення FileGenerationRequested; ексклюзивна callback-черга. Постійної таблиці генерацій немає. Схема відтворює послідовність маршруту download та RabbitMQ-адаптера.
+
+1. [Термінатор → Дані → Підпрограма] Прийняти access JWT. `V := ValidateJWT`; помилка автентифікації — 401. `L := FindActiveLicenseForUser(V.user_id)`; відсутність активної ліцензії — 403 NO_ACTIVE_LICENSE. Тіло запиту та user_id від клієнта не приймаються.
+2. [Процес] `ExpireDate := FormatUTC(L.expires_at)`; NULL для lifetime зберігається. Читання ліцензії та форматування часу виконуються перед блоком try маршруту, який охоплює RPC. Їхній необроблений збій дає звичайний 500; код FILE_GENERATION_FAILED до нього не приписується.
+3. [Підпрограми → Процес] Відкрити RabbitMQ connection/channel та ексклюзивну callback-чергу. `CorrelationId := UUID`; `Request := BuildRequest(V.user_id, ExpireDate)`. Надіслати JSON з event_type FileGenerationRequested і payload user_id/expire_date у file_generation_queue. correlation_id та reply_to — властивості AMQP, не колонки БД.
+4. [Підпрограма → Процес] Після publish відкрити iterator callback-черги. `ReplyDeadline := MonotonicNow + 30 s` — математичний запис одного спільного asyncio.timeout(30) лише для очікування reply та оброблення повідомлень усередині цього контексту. Connect, створення черги, publish і відкриття iterator відбуваються раніше та цим таймером не обмежуються.
+5. [Підпрограма → Рішення] `Msg := ReceiveWithinReplyTimeout`. Якщо `Msg.correlation_id ≠ CorrelationId`, підтвердити повідомлення та перейти до наступного отримання без перезапуску таймера. За збігу виконати `URL := DecodeUTF8(Msg.body)` і підтвердити повідомлення. Спільний ReplyDeadline обмежує цикл; помилка декодування або таймаут переходять до RPC-помилки.
+6. [Підпрограма → Дані → Термінатор] Вийти з відкритих контекстів RPC. Успіх — 200 з download_url. Вміст reply передається після UTF-8 декодування без окремої IsURL-перевірки або перевірки порожнього рядка. Помилка з’єднання, publish, очікування, декодування чи завершення RPC передається маршруту та перетворюється на 500 FILE_GENERATION_FAILED.
+
+**Межа таймера:** 30 с тут не є загальним deadline HTTP-запиту. [REL-05](srs.md#srs-nfr-rel-05) залишається окремим цільовим критерієм приймання з ЛР №5 і не зображається як уже наявний алгоритм. Таймаут не скасовує віддалену збірку; автоматичний повтор, outbox та exactly-once не передбачені. Помилка збірки без reply призводить до завершення очікування за таймаутом. Закриття контекстів не містить доданого циклу повторних спроб.
+
+```mermaid
+graph TD
+    S([Початок]) --> I[/Ввід: access JWT/]
+    I --> V[[V := ValidateJWT]]
+    V --> AUTH{V.ok = TRUE}
+    AUTH -->|Ні| UN[/Вивід: 401/]
+    UN --> E([Кінець])
+    AUTH -->|Так| L[[L := FindActiveLicenseForUser]]
+    L --> HAS{L ≠ NULL}
+    HAS -->|Ні| DENY[/Вивід: 403 NO_ACTIVE_LICENSE/]
+    DENY --> E
+    HAS -->|Так| EXP["ExpireDate := FormatUTC(L.expires_at)"]
+    EXP --> CONNECT[[Connection := OpenRabbitConnection]]
+    CONNECT --> QUEUE[[Callback := OpenChannelAndExclusiveReplyQueue]]
+    QUEUE --> INIT["CorrelationId := UUID; Request := BuildRequest(V.user_id, ExpireDate)"]
+    INIT --> PUB[[Published := PublishBuildRequest]]
+    PUB --> ITER[[Iterator := OpenReplyIterator]]
+    ITER --> TIMER[ReplyDeadline := MonotonicNow + 30 s]
+    TIMER --> WAIT[[Msg := ReceiveWithinReplyTimeout]]
+    WAIT --> ID{Msg.correlation_id = CorrelationId}
+    ID -->|Ні| ACK[[Ack := AcknowledgeMessage]]
+    ACK --> WAIT
+    ID -->|Так| DECODE["URL := DecodeUTF8(Msg.body)"]
+    DECODE --> MATCH[[Ack := AcknowledgeMessage]]
+    MATCH --> CLOSE[[Closed := CloseRPCContexts]]
+    CLOSE --> OUT[/Вивід: 200; status := success; download_url := URL/]
+    OUT --> E
+    L -. Помилка .-> DBERR[/Вивід: 500; необроблена помилка до RPC/]
+    EXP -. Помилка .-> DBERR
+    DBERR --> E
+    CONNECT -. Помилка .-> FAIL[[Closed := UnwindOpenedRPCContexts]]
+    QUEUE -. Помилка .-> FAIL
+    PUB -. Помилка .-> FAIL
+    ITER -. Помилка .-> FAIL
+    WAIT -. Таймаут OR помилка .-> FAIL
+    ACK -. Помилка .-> FAIL
+    DECODE -. Помилка .-> FAIL
+    MATCH -. Помилка .-> FAIL
+    CLOSE -. Помилка .-> FAIL
+    FAIL --> RPCERR[/Вивід: 500 FILE_GENERATION_FAILED/]
+    FAIL -. Помилка закриття .-> RPCERR
+    RPCERR --> E
+```
+
+[Інтерактивна схема](https://mermaid.live/view#pako:eJyNVe1u40QUfZWRf7WimxYWJJRqkVx7Qg2O03XsFORW0cQeGmsdT7DHtFVaCRUJhISExI_9gYRAPEFAu2IpUF5h_Ao8CXfGdj5KVyGREnvmnHPv3Dl3ZqaFLKJaWzvLyHSMPPMkRfDpbwXiR3FXfiXm5Y24E7en2-jRo_eQFeyK78Sv5XPxoo1IGNI8Rx8ce7unFc1SoEEQDFD7CRqQJI4IpwA4rQEDBdB973A2aLFn6AnyXB9fV5NyWM5fiR_K51fId1SwV024t_febOL4jtLBkOX3MPmXeFl-WX5zun1f52cxF7dXyA4CWybUidNID3n8GbXjkKY57bDMz2nWZGcr1UO9P7PRP1__hBzftuvcYHAlNRM7H99P7jFyekPd8KwBHtqWgZ0-btKV8Crhe2J1fvijo-BEwxfTOKMmFEzlyrIJ4b5nbNktqmbyIeHbJ1qtCRwlafQcBxteEBgsTSksjqWS3pvS1CWjUcyX480ya4qiP_Wxj4FMkmREwmcN1RgTYCV6GuGLMClyKJlLp8nl04IWtNFR3MoWjuXBCgyWZTQhMpYVSSnft8x95NJPC5pzOXBQxElUv28NWgUUfxhHO2i59uUKpahSP_IPguCoGCVxPqZKt35ZVWuSAnCVkofdILA4zQhn2aIkchHNYEORUMXxrC6QFMakJEriVG1Fl6WMszQOHXaO3kCP91BeMxVBUY91qEDQzc8kwaUhhYodx3wcVyG9eEJZsUhSoqsszRlwWuGycFAO6Iq1StYWtMwVB-rGh0GgVxsGfyk7T2h0RrvQkORssUOAWmS3LlI7z8RGz8Swdb6rOsSk8jjwvc67WzKvEYsulxtSgZVgV_eMw_-RgMJVPrV7fWm0hOXVHqon98gAf3J6wfOFOyVQUXq-t95kb-3t7aOcE17kUiEv1AG0jyJ2niaMRMMiS5TtXLtpPdBY7Tzo8BaSJ5v4E2T_ELdijlowbR5g110P9o4MJo8WAP9Sfi5_gfASRuZI_L2mIF6IOwRL2V3tzdfHqaspH1dzW7Tlg8yObtmr5fPTczjNpKdp9EAV6958rdRKs2zAVN2xAVQZGkDSV78DbF5-Ud6gnnu_VOs05c8N0o3rNsBqp21A1ebagJJPamegsA_5AnUsGw_fxw52dc_qOUNJwGaz_RX9PzHEb7LnwEmvyhv4fquCVhEqXvXcWELb0SYU7oA40tozjY_pRF7TEf2EFAnXrnc0UnDWv0xDrc2zgu5oxVRetmZM4CqfVIPX_wLA5-fv). [Код](diagrams/algorithm-vip-download.mmd).
+
+## 2.7. Інтеграційний аудит та верифікація цілісності доменів
+
+### Production Readiness Report — узгодженість специфікацій
+
+**Обсяг:** ERD/словник 7 таблиць, Redis-модель, три HTTP-операції, AMQP RPC і алгоритми A1–A3. **Висновок:** пакет узгоджений на рівні архітектурних специфікацій та придатний для передавання до Розділу 3. Нерозв’язаних суперечностей назв, типів чи призначення полів у цьому обсязі не виявлено. Це не висновок про завершене приймання програмної реалізації або виконання NFR.
+
+#### API ↔ Data ↔ Logic
+
+| Елемент | API / транспорт | Збереження / джерело | Алгоритм та перевірка |
+|---|---|---|---|
+| Власник | JWT sub → integer | users.id; licenses.user_id INT | A1/A3; клієнт не задає власника |
+| key | string, 19 символів; regex у check | licenses.key VARCHAR UNIQUE | A1 точний пошук / A2 формат; DB CHECK не вигадано |
+| force | boolean default false | Команда, не колонка | A1: 409 або завершення Old |
+| Стани | HTTP success/valid; коди помилок | LicenseStatus та окремий purchase.status VARCHAR | ACTIVE ≠ COMPLETED; не змішано з HTTP status |
+| Пристрої | check.device string 2–100 | license_activations.device VARCHAR | A2: Devices[i] — завантажена колекція рядків, не масив-колонка |
+| Квота | 403 HWID_LIMIT_REACHED | licenses.max_devices INT | A2 відомий HWID / новий; конкурентний тест окремо |
+| id у check | integer/int32 | licenses.id INT | A2 повертає L.id; не user_id |
+| user у check | nickname string | users.nickname VARCHAR(50) через HTTP | A2: MTGVIP лише для порожнього nickname, не для відсутнього профілю |
+| expire_date | AMQP string date-time або null | licenses.expires_at TIMESTAMPTZ nullable | A3 UTC serialization; lifetime зберігає null |
+| correlation_id/reply_to | Властивості AMQP | Тимчасова координація, не таблиці | A3 зіставлення reply та спільний reply-timeout |
+| download_url | HTTP string/uri; AMQP UTF-8 string | Файл Distribution; не колонка License DB | A3 результат генерації, не сутність OAuth |
+| Агрегати Usage | Поза трьома вибраними HTTP-операціями | launches.device PC/MOBILE; hwid 5–255 | Не ототожнюються з A2.device HWID 2–100 |
+
+#### Виявлені й усунені розбіжності документації
+
+1. У початковому ескізі ERD не були розрізнені DB-власники та nullable FK. Додано всі 47 полів, 0..1 кардинальності та два фізичні FK; user_id залишено логічним посиланням.
+2. Первинний API-каркас описував лише 200. Додано JWT, валідацію, 400/401/403/404/409/422/429/500/502/504 за конкретними операціями та різні envelope помилок.
+3. Уточнено id ліцензії, HWID vs PC/MOBILE, Activate length vs Check regex. Жодного UUID замість INT або required-колонки для force/valid не додано.
+4. Початковий алгоритм приховував два commit. A1 тепер показує часткове завершення; A2 — commit пристрою до HTTP-профілю. Опис не гарантує відкат уже записаних змін.
+5. Відокремлено AMQP metadata від JSON payload, а reply URL — від HTTP JSON. Для nullable expiry збережено передачу null без штучного рядка "None".
+6. A3 приведено до вихідної послідовності: 30 с лише на reply після publish, без доданої URL-валідації. Звичайний 500 до RPC відокремлено від FILE_GENERATION_FAILED. Загальний deadline REL-05 залишено окремим цільовим критерієм.
+7. Для download прибрано непідтверджений 422; для activate/check його збережено. Описано DELETED, очищення auth-артефактів і два наявні CASCADE без додавання FK.
+
+#### Інструментальна перевірка та межі приймання
+
+- DBML розібрано штатним парсером; склад і обмеження звірено з ORM без підключення до робочих БД.
+- Mermaid ERD, Redis і три алгоритми перевірено рендерером; текстові блоки відповідають .mmd-копіям.
+- OpenAPI 3.0.3 перевірено валідатором; локальні $ref та приклади запитів/відповідей перевірено за схемами. Runtime-секрети і дані користувачів не використовувалися.
+- Перевірено відносні посилання на [SRS](srs.md), [ADR](adr/0001-choice-of-technology.md), схеми та контракт; дані й алгоритми трасовано до функціональних вимог.
+
+**Умови приймання реалізації:** конкурентна активація одного ключа й квоти, відновлення покупки після часткового commit, захист nullable/неприпустимих станів, точність фінансових сум, загальний deadline connect/publish/reply/cleanup за окремим цільовим REL-05. Наявний алгоритм A3 обмежує лише reply; додаткова IsURL-перевірка до нього не приписується. Це відкриті критерії верифікації реалізації; вони не приховуються під статусом Done для документації. Відсутність outbox/дедуплікації збережено як компроміс ADR-001. Додавання Kafka, CQRS або нових сервісів для виконання ЛР не потрібне.
+
+
+### Нормативні технічні джерела
+
+- [Mermaid ERD](https://mermaid.js.org/syntax/entityRelationshipDiagram.html).
+- [OpenAPI 3.0.3](https://spec.openapis.org/oas/v3.0.3.html).
+- [DBML syntax](https://dbml.dbdiagram.io/docs/).

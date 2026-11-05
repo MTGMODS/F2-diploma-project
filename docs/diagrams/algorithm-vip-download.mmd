@@ -1,0 +1,41 @@
+graph TD
+    S([Початок]) --> I[/Ввід: access JWT/]
+    I --> V[[V := ValidateJWT]]
+    V --> AUTH{V.ok = TRUE}
+    AUTH -->|Ні| UN[/Вивід: 401/]
+    UN --> E([Кінець])
+    AUTH -->|Так| L[[L := FindActiveLicenseForUser]]
+    L --> HAS{L ≠ NULL}
+    HAS -->|Ні| DENY[/Вивід: 403 NO_ACTIVE_LICENSE/]
+    DENY --> E
+    HAS -->|Так| EXP["ExpireDate := FormatUTC(L.expires_at)"]
+    EXP --> CONNECT[[Connection := OpenRabbitConnection]]
+    CONNECT --> QUEUE[[Callback := OpenChannelAndExclusiveReplyQueue]]
+    QUEUE --> INIT["CorrelationId := UUID; Request := BuildRequest(V.user_id, ExpireDate)"]
+    INIT --> PUB[[Published := PublishBuildRequest]]
+    PUB --> ITER[[Iterator := OpenReplyIterator]]
+    ITER --> TIMER[ReplyDeadline := MonotonicNow + 30 s]
+    TIMER --> WAIT[[Msg := ReceiveWithinReplyTimeout]]
+    WAIT --> ID{Msg.correlation_id = CorrelationId}
+    ID -->|Ні| ACK[[Ack := AcknowledgeMessage]]
+    ACK --> WAIT
+    ID -->|Так| DECODE["URL := DecodeUTF8(Msg.body)"]
+    DECODE --> MATCH[[Ack := AcknowledgeMessage]]
+    MATCH --> CLOSE[[Closed := CloseRPCContexts]]
+    CLOSE --> OUT[/Вивід: 200; status := success; download_url := URL/]
+    OUT --> E
+    L -. Помилка .-> DBERR[/Вивід: 500; необроблена помилка до RPC/]
+    EXP -. Помилка .-> DBERR
+    DBERR --> E
+    CONNECT -. Помилка .-> FAIL[[Closed := UnwindOpenedRPCContexts]]
+    QUEUE -. Помилка .-> FAIL
+    PUB -. Помилка .-> FAIL
+    ITER -. Помилка .-> FAIL
+    WAIT -. Таймаут OR помилка .-> FAIL
+    ACK -. Помилка .-> FAIL
+    DECODE -. Помилка .-> FAIL
+    MATCH -. Помилка .-> FAIL
+    CLOSE -. Помилка .-> FAIL
+    FAIL --> RPCERR[/Вивід: 500 FILE_GENERATION_FAILED/]
+    FAIL -. Помилка закриття .-> RPCERR
+    RPCERR --> E

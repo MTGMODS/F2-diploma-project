@@ -1,0 +1,37 @@
+graph TD
+    S([Початок]) --> I[/Ввід: key, device, IP, UserAgent/]
+    I --> V[[V := ValidateCheckDTO]]
+    V --> Q{V.ok = TRUE}
+    Q -->|Ні| VE[/Вивід: 422 VALIDATION_ERROR/]
+    VE --> E([Кінець])
+    Q -->|Так| L[[L := FindLicenseWithDevices]]
+    L --> FOUND{L ≠ NULL}
+    FOUND -->|Ні| NF[/Вивід: 404 LICENSE_NOT_FOUND/]
+    NF --> E
+    FOUND -->|Так| ST{L.status = BANNED OR L.status = EXPIRED OR L.status = NOT_ACTIVATED}
+    ST -->|Так| DENY[/Вивід: 403; код стану ліцензії/]
+    DENY --> E
+    ST -->|Ні| INIT["Devices := L.devices; n := Length(Devices); i := 0; found := FALSE"]
+    INIT --> LOOP{i &lt; n AND NOT found}
+    LOOP -->|Так| EQ{"Devices[i].device = device"}
+    EQ -->|Так| YES[found := TRUE]
+    EQ -->|Ні| INC[i := i + 1]
+    YES --> LOOP
+    INC --> LOOP
+    LOOP -->|Ні| QUOTA{NOT found AND n ≥ L.max_devices}
+    QUOTA -->|Так| LIMIT[/Вивід: 403 HWID_LIMIT_REACHED/]
+    LIMIT --> E
+    QUOTA -->|Ні| SAVE[[R := UpsertDeviceAndCommit]]
+    SAVE --> P[[Profile := GetUserProfileByHTTP]]
+    P --> NULL{Profile = NULL}
+    NULL -->|Так| ERR[/Вивід: 400; valid := FALSE; error := Internal server error/]
+    NULL -->|Ні| NICK{Profile.nickname ≠ EMPTY}
+    NICK -->|Так| NAME[Name := Profile.nickname]
+    NICK -->|Ні| FALL[Name := MTGVIP]
+    NAME --> RES[/Вивід: 200; valid := TRUE; user := Name; id := L.id/]
+    FALL --> RES
+    RES --> E
+    ERR --> E
+    L -. Помилка .-> ERR
+    SAVE -. Помилка .-> ERR
+    P -. Помилка .-> ERR

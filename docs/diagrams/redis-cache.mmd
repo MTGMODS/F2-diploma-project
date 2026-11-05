@@ -1,0 +1,17 @@
+classDiagram
+    class CacheEnvelope {
+        +object data
+        +number fresh_until
+    }
+    class RedisCacheKey {
+        +string key
+        +string JSON_value
+        +integer retention_seconds
+    }
+    class RedisLockKey {
+        +string key_suffix_lock
+        +string owner_token_hex32
+        +integer ttl_seconds
+    }
+    RedisCacheKey "1" --> "1" CacheEnvelope : JSON serialization
+    RedisCacheKey "1" .. "0..1" RedisLockKey : refresh coordination
