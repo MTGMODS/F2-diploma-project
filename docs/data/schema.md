@@ -9,7 +9,7 @@
 ## user_db.users
 
 | Поле | Тип PostgreSQL / ORM | Обмеження | Призначення |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `id` | `int` | PK; автоінкремент; NOT NULL | Внутрішній ID користувача. |
 | `telegram_id` | `bigint` | NULL; UNIQUE index | ID Telegram; не внутрішній ID. |
 | `discord_id` | `bigint` | NULL; UNIQUE index | ID Discord; не внутрішній ID. |
@@ -25,7 +25,7 @@
 ## user_db.oauth_handoffs
 
 | Поле | Тип PostgreSQL / ORM | Обмеження | Призначення |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `ticket` | `varchar(64)` | PK; NOT NULL | Одноразовий квиток обміну OAuth-результатом. |
 | `payload` | `text` | NOT NULL | Серіалізований JSON результату; фізично TEXT. |
 | `expires_at` | `timestamptz` | NOT NULL | Граничний час використання квитка. |
@@ -35,7 +35,7 @@
 ## user_db.refresh_sessions
 
 | Поле | Тип PostgreSQL / ORM | Обмеження | Призначення |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `id` | `int` | PK; автоінкремент; NOT NULL | ID refresh-сесії. |
 | `user_id` | `int` | NOT NULL; index; FK відсутній | Логічний власник: users.id. |
 | `token_hash` | `varchar(64)` | NOT NULL; UNIQUE | Хеш токена; відкритий токен не зберігається. |
@@ -46,7 +46,7 @@
 ## license_db.licenses
 
 | Поле | Тип PostgreSQL / ORM | Обмеження | Призначення |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `id` | `int` | PK; автоінкремент; NOT NULL | ID ліцензії; поле id відповіді check. |
 | `user_id` | `int` | NULL до активації; index; без FK | Власник; логічне посилання на User Service. |
 | `key` | `varchar` | NOT NULL; UNIQUE index; VARCHAR без DB CHECK довжини | Ключ формату XXXX-XXXX-XXXX-XXXX, A–Z/0–9. |
@@ -63,7 +63,7 @@
 ## license_db.license_activations
 
 | Поле | Тип PostgreSQL / ORM | Обмеження | Призначення |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `id` | `int` | PK; автоінкремент; NOT NULL | ID запису пристрою. |
 | `license_id` | `int` | NULL; FK licenses.id; ON DELETE CASCADE | Ліцензія пристрою. |
 | `device` | `varchar` | NOT NULL; API check: 2–100 символів | Ідентифікатор HWID; не тип PC/MOBILE. |
@@ -77,7 +77,7 @@
 ## license_db.transaction_purchases
 
 | Поле | Тип PostgreSQL / ORM | Обмеження | Призначення |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `id` | `int` | PK; автоінкремент; NOT NULL | ID запису продажу. |
 | `user_id` | `int` | NULL; index; без FK | Власник покупки; логічний users.id. |
 | `license_id` | `int` | NULL; UNIQUE; FK licenses.id; ON DELETE CASCADE | Ліцензія; не більше однієї покупки для ліцензії. |
@@ -91,7 +91,7 @@
 ## usage_db.launches
 
 | Поле | Тип PostgreSQL / ORM | Обмеження | Призначення |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `id` | `int` | PK; автоінкремент; NOT NULL | ID події запуску. |
 | `version` | `varchar` | NOT NULL; обмеження формату на вході Usage API | Версія та редакція цифрового продукту. |
 | `device` | `varchar` | NOT NULL; VARCHAR; перевірка API, не DB ENUM | Категорія пристрою PC або MOBILE. |
@@ -123,7 +123,7 @@
 ## План індексування та інженерний борг
 
 | Запит / ризик | Наявна підтримка | Рішення та спосіб перевірки |
-|---|---|---|
+| --- | --- | --- |
 | Ключ ліцензії, соціальний ID, refresh-хеш | UNIQUE B-tree | Зберегти; перевірити індексний пошук на тестових даних |
 | Активна ліцензія за користувачем | B-tree user_id; фільтр status | Перевірити `(user_id, status)` або частковий індекс ACTIVE через EXPLAIN (ANALYZE, BUFFERS); не створювати без вимірювань |
 | Пристрої конкретної ліцензії | Окремого індексу license_id немає | Кандидат `(license_id, device)`; унікальність лише після усунення дублів і nullable-рядків |
