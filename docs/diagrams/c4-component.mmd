@@ -1,63 +1,57 @@
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"Arial, sans-serif","fontSize":"16px","lineColor":"#64748b","clusterBkg":"#f8fafc","clusterBorder":"#cbd5e1","edgeLabelBackground":"#ffffff"},"flowchart":{"htmlLabels":true,"curve":"linear","nodeSpacing":35,"rankSpacing":65,"wrappingWidth":220}}}%%
 flowchart TB
-  Caller["External containers: Gateway / bots"]
-  PG[("License PostgreSQL")]
-  UserAPI["User Service"]
-  MQ["RabbitMQ"]
-  Redis[("Redis")]
-  subgraph License["License Service — цільова компонентна модель"]
-    subgraph Inbound["Inbound adapters"]
-      API["REST controllers"]
-      DTO["Pydantic DTO validation"]
-      Guard["JWT / ADMIN / bot-token guards"]
-      Worker["Expiry scheduler adapter"]
-    end
-    subgraph Core["Application / domain — без FastAPI та SQLAlchemy"]
-      UseCases["License use cases<br/>activate / check / reset / expire"]
-      Download["Download use case<br/>authorize + request build"]
-      Stats["Sales statistics use case"]
-      RP["Port: LicenseStore / PurchaseStore"]
-      UP["Port: UserDirectory"]
-      MP["Port: BuildGateway / BotPublisher"]
-      CP["Port: StatsCache"]
-    end
-    subgraph Outbound["Outbound adapters"]
-      Repo["SQLAlchemy repositories / transaction scope"]
-      HTTP["httpx UserServiceClient"]
-      AMQP["aio-pika RPC / publisher"]
-      Cache["Redis cache adapter"]
-    end
-    Wiring["Composition root<br/>Depends providers / constructor injection"]
-    Errors["Error boundary / sanitized logging"]
+  %% C4 Level 3: actual concrete dependencies in services/license/app.
+  Caller["Other containers: Host gateway / bots"]
+  UserAPI["Other container: User Service"]
+  PG[("Other container: License PostgreSQL")]
+  Redis[("Other container: Redis")]
+  MQ["Other container: RabbitMQ"]
+  subgraph License["Container boundary: License Service / Python FastAPI"]
+    Routes["Component: REST routers<br/>client / user / admin / bot / stats"]
+    DTO["Component: Pydantic DTOs<br/>domain/schemas.py"]
+    Guards["Component: Route-specific guards<br/>JWT access / ADMIN / x-bot-token"]
+    Service["Component: LicenseService<br/>Activation / validity / devices / purchases"]
+    Stats["Component: LicenseStatsService<br/>Public / legacy sales aggregates"]
+    Worker["Component: Expiry task<br/>Status updates / social lookup / commands"]
+    Repo["Component: LicenseRepository / TransactionRepository<br/>Concrete SQLAlchemy repositories and ORM models"]
+    Client["Component: UserServiceClient<br/>Concrete HTTPX client"]
+    Messaging["Component: Messaging functions<br/>aio-pika RPC / topic publisher"]
+    Cache["Component: PublicStatsCache<br/>Redis / loader callback / refresh lock"]
+    DB["Component: Database session factory<br/>get_db / AsyncSessionLocal"]
+    Bootstrap["Component: FastAPI app / lifespan<br/>Router registration / caches / expiry task"]
+    Errors["Cross-cutting: Error handlers<br/>DomainException / RequestValidationError"]
   end
-  Caller -->|"HTTP / JSON"| API
-  API -->|"FastAPI validation"| DTO
-  API -->|"Depends: route-specific policy"| Guard
-  API -->|"injected interface call"| UseCases
-  API -->|"injected interface call"| Download
-  API -->|"injected interface call"| Stats
-  Worker -->|"injected expire use case"| UseCases
-  UseCases -->|"interface call"| RP
-  UseCases -->|"interface call"| UP
-  UseCases -->|"interface call: expiry commands"| MP
-  Download -->|"interface call: authorize"| RP
-  Download -->|"interface call: build / deadline"| MP
-  Stats -->|"interface call: aggregates loader"| RP
-  Stats -->|"interface call: cache policy"| CP
-  Repo -.->|"implements interface"| RP
-  HTTP -.->|"implements interface"| UP
-  AMQP -.->|"implements interface"| MP
-  Cache -.->|"implements interface"| CP
-  Wiring -.->|"binds ports to adapters"| Repo
-  Wiring -.->|"binds ports to adapters"| HTTP
-  Wiring -.->|"binds ports to adapters"| AMQP
-  Wiring -.->|"binds ports to adapters"| Cache
-  Wiring -.->|"constructs use cases"| UseCases
-  Wiring -.->|"constructs use cases"| Download
-  Wiring -.->|"constructs use cases"| Stats
-  API -.->|"exception mapping / log event"| Errors
-  Worker -.->|"exception mapping / log event"| Errors
-  DTO -.->|"422 validation error"| Errors
-  Repo -->|"SQL / PostgreSQL TCP"| PG
-  HTTP -->|"HTTP / JSON: internal token"| UserAPI
-  AMQP -->|"AMQP / TCP"| MQ
-  Cache -->|"RESP / TCP"| Redis
+  Caller -->|"HTTP / JSON"| Routes
+  Routes -->|"FastAPI input validation"| DTO
+  Routes -->|"Depends on protected routes"| Guards
+  Routes -->|"Depends: get_db session"| DB
+  Routes -->|"Python: LicenseService(db) / methods"| Service
+  Routes -->|"Python: LicenseStatsService(app.state cache)"| Stats
+  Routes -->|"Python await: download RPC after license check"| Messaging
+  Service -->|"Constructs concrete repositories with session"| Repo
+  Service -->|"Constructs / calls concrete client"| Client
+  Service -->|"AsyncSession: flush / commit / refresh"| DB
+  Stats -->|"cache.get(loader, background_tasks)"| Cache
+  Stats -->|"Loader: own AsyncSessionLocal"| DB
+  Stats -->|"Loader: LicenseRepository(db) aggregate query"| Repo
+  Worker -->|"Own AsyncSessionLocal / commit"| DB
+  Worker -->|"Constructs / calls LicenseRepository"| Repo
+  Worker -->|"Resolves linked social IDs"| Client
+  Worker -->|"Python await: VIP expiry commands"| Messaging
+  Repo -->|"Injected AsyncSession: SQLAlchemy statements"| DB
+  DB -->|"asyncpg / SQL / PostgreSQL TCP"| PG
+  Client -->|"HTTP / JSON: x-internal-token"| UserAPI
+  Messaging -->|"AMQP / TCP: build request/reply and bot commands"| MQ
+  Cache -->|"RESP / TCP: cached aggregates / locks"| Redis
+  Bootstrap -->|"include_router"| Routes
+  Bootstrap -->|"Constructs two app.state caches / closes on shutdown"| Cache
+  Bootstrap -->|"asyncio task: start / cancel"| Worker
+  Bootstrap -->|"Registers exception handlers"| Errors
+  Routes -.->|"DomainException / validation exception dispatch"| Errors
+  Service -.->|"Raises DomainException on business errors"| Errors
+  classDef external fill:#f3f4f6,stroke:#6b7280,color:#111827
+  classDef component fill:#e8f1ff,stroke:#2563eb,color:#111827
+  classDef storage fill:#ecfdf5,stroke:#059669,color:#111827
+  class Caller,UserAPI,MQ external
+  class PG,Redis storage
+  class Routes,DTO,Guards,Service,Stats,Worker,Repo,Client,Messaging,Cache,DB,Bootstrap,Errors component

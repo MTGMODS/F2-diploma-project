@@ -1,3 +1,5 @@
+<!-- markdownlint-disable MD025 -->
+
 # Thesis Proposal
 
 **Кваліфікаційний проєкт бакалавра** · Спеціальність F2 «Інженерія програмного забезпечення» (попередній код 121)
@@ -45,7 +47,7 @@
 ## 5. Технологічний стек
 
 | Категорія | Запропоновані засоби |
-|---|---|
+| --- | --- |
 | Мови | Python 3.12, TypeScript, SQL, Bash |
 | Архітектурні патерни та інтерфейси | Доменна декомпозиція на мікросервіси; REST API; асинхронні повідомлення; взаємодія запит-відповідь |
 | Backend-фреймворки та бібліотеки | FastAPI, SQLAlchemy 2, Pydantic, HTTPX, aio-pika |
@@ -108,7 +110,7 @@ The primary Appendix 1 direction for this project is distributed systems and Clo
 ## 5. Technology stack
 
 | Category | Proposed technologies |
-|---|---|
+| --- | --- |
 | Languages | Python 3.12, TypeScript, SQL, Bash |
 | Architectural patterns and interfaces | Microservices; REST APIs; asynchronous messaging; request/reply messaging |
 | Backend frameworks and libraries | FastAPI, SQLAlchemy 2, Pydantic, HTTPX, aio-pika |

@@ -1,0 +1,512 @@
+<?xml version='1.0' encoding='utf-8'?>
+<diagram program="umlet" version="15.1">
+  <zoom_level>10</zoom_level>
+  <element>
+    <id>UMLGeneric</id>
+    <coordinates>
+      <x>250</x>
+      <y>30</y>
+      <w>1180</w>
+      <h>1180</h>
+    </coordinates>
+    <panel_attributes>*micro-SaaS-платформа MTG MODS*
+halign=center
+valign=top
+fontsize=18
+bg=#f8fafc
+layer=-1</panel_attributes>
+    <additional_attributes />
+  </element>
+  <element>
+    <id>UMLActor</id>
+    <coordinates>
+      <x>35</x>
+      <y>125</y>
+      <w>160</w>
+      <h>105</h>
+    </coordinates>
+    <panel_attributes>Відвідувач
+fontsize=16</panel_attributes>
+    <additional_attributes />
+  </element>
+  <element>
+    <id>UMLActor</id>
+    <coordinates>
+      <x>35</x>
+      <y>470</y>
+      <w>160</w>
+      <h>105</h>
+    </coordinates>
+    <panel_attributes>Користувач
+fontsize=16</panel_attributes>
+    <additional_attributes />
+  </element>
+  <element>
+    <id>UMLActor</id>
+    <coordinates>
+      <x>35</x>
+      <y>880</y>
+      <w>160</w>
+      <h>105</h>
+    </coordinates>
+    <panel_attributes>Адміністратор
+fontsize=16</panel_attributes>
+    <additional_attributes />
+  </element>
+  <element>
+    <id>UMLActor</id>
+    <coordinates>
+      <x>1500</x>
+      <y>275</y>
+      <w>170</w>
+      <h>105</h>
+    </coordinates>
+    <panel_attributes>Telegram API
+fontsize=16</panel_attributes>
+    <additional_attributes />
+  </element>
+  <element>
+    <id>UMLActor</id>
+    <coordinates>
+      <x>1500</x>
+      <y>475</y>
+      <w>170</w>
+      <h>105</h>
+    </coordinates>
+    <panel_attributes>Discord API
+fontsize=16</panel_attributes>
+    <additional_attributes />
+  </element>
+  <element>
+    <id>UMLActor</id>
+    <coordinates>
+      <x>1485</x>
+      <y>870</y>
+      <w>220</w>
+      <h>105</h>
+    </coordinates>
+    <panel_attributes>Готовий
+SA-MP-продукт
+fontsize=16</panel_attributes>
+    <additional_attributes />
+  </element>
+  <element>
+    <id>UMLActor</id>
+    <coordinates>
+      <x>1485</x>
+      <y>1100</y>
+      <w>240</w>
+      <h>105</h>
+    </coordinates>
+    <panel_attributes>Зовнішній канал
+придбання
+fontsize=16</panel_attributes>
+    <additional_attributes />
+  </element>
+  <element>
+    <id>UMLUseCase</id>
+    <coordinates>
+      <x>340</x>
+      <y>110</y>
+      <w>340</w>
+      <h>70</h>
+    </coordinates>
+    <panel_attributes>Ознайомитися з продуктом
+fontsize=16
+bg=#e8f1ff</panel_attributes>
+    <additional_attributes />
+  </element>
+  <element>
+    <id>UMLUseCase</id>
+    <coordinates>
+      <x>340</x>
+      <y>210</y>
+      <w>340</w>
+      <h>70</h>
+    </coordinates>
+    <panel_attributes>Отримати Free-версію
+fontsize=16
+bg=#e8f1ff</panel_attributes>
+    <additional_attributes />
+  </element>
+  <element>
+    <id>UMLUseCase</id>
+    <coordinates>
+      <x>340</x>
+      <y>310</y>
+      <w>340</w>
+      <h>70</h>
+    </coordinates>
+    <panel_attributes>Переглянути публічну
+статистику
+fontsize=16
+bg=#e8f1ff</panel_attributes>
+    <additional_attributes />
+  </element>
+  <element>
+    <id>UMLUseCase</id>
+    <coordinates>
+      <x>950</x>
+      <y>350</y>
+      <w>370</w>
+      <h>85</h>
+    </coordinates>
+    <panel_attributes>Увійти через
+Telegram або Discord
+fontsize=16
+bg=#e8f1ff</panel_attributes>
+    <additional_attributes />
+  </element>
+  <element>
+    <id>UMLUseCase</id>
+    <coordinates>
+      <x>340</x>
+      <y>480</y>
+      <w>340</w>
+      <h>85</h>
+    </coordinates>
+    <panel_attributes>UC-01: Активувати ключ
+fontsize=16
+bg=#e8f1ff</panel_attributes>
+    <additional_attributes />
+  </element>
+  <element>
+    <id>UMLUseCase</id>
+    <coordinates>
+      <x>870</x>
+      <y>480</y>
+      <w>360</w>
+      <h>85</h>
+    </coordinates>
+    <panel_attributes>Замінити чинну ліцензію
+fontsize=16
+bg=#e8f1ff</panel_attributes>
+    <additional_attributes />
+  </element>
+  <element>
+    <id>UMLUseCase</id>
+    <coordinates>
+      <x>340</x>
+      <y>675</y>
+      <w>340</w>
+      <h>85</h>
+    </coordinates>
+    <panel_attributes>UC-02: Отримати VIP-файл
+fontsize=16
+bg=#e8f1ff</panel_attributes>
+    <additional_attributes />
+  </element>
+  <element>
+    <id>UMLUseCase</id>
+    <coordinates>
+      <x>900</x>
+      <y>685</y>
+      <w>380</w>
+      <h>80</h>
+    </coordinates>
+    <panel_attributes>Визначити чинність ліцензії
+fontsize=16
+bg=#e8f1ff</panel_attributes>
+    <additional_attributes />
+  </element>
+  <element>
+    <id>UMLUseCase</id>
+    <coordinates>
+      <x>340</x>
+      <y>815</y>
+      <w>340</w>
+      <h>85</h>
+    </coordinates>
+    <panel_attributes>Керувати власними
+пристроями
+fontsize=16
+bg=#e8f1ff</panel_attributes>
+    <additional_attributes />
+  </element>
+  <element>
+    <id>UMLUseCase</id>
+    <coordinates>
+      <x>340</x>
+      <y>990</y>
+      <w>400</w>
+      <h>90</h>
+    </coordinates>
+    <panel_attributes>Керувати ліцензіями та
+користувачами
+fontsize=16
+bg=#e8f1ff</panel_attributes>
+    <additional_attributes />
+  </element>
+  <element>
+    <id>UMLUseCase</id>
+    <coordinates>
+      <x>920</x>
+      <y>855</y>
+      <w>390</w>
+      <h>80</h>
+    </coordinates>
+    <panel_attributes>Перевірити ключ і пристрій
+fontsize=16
+bg=#e8f1ff</panel_attributes>
+    <additional_attributes />
+  </element>
+  <element>
+    <id>UMLUseCase</id>
+    <coordinates>
+      <x>920</x>
+      <y>970</y>
+      <w>390</w>
+      <h>80</h>
+    </coordinates>
+    <panel_attributes>Передати подію використання
+fontsize=16
+bg=#e8f1ff</panel_attributes>
+    <additional_attributes />
+  </element>
+  <element>
+    <id>UMLUseCase</id>
+    <coordinates>
+      <x>920</x>
+      <y>1100</y>
+      <w>390</w>
+      <h>80</h>
+    </coordinates>
+    <panel_attributes>Перейти до зовнішнього
+придбання
+fontsize=16
+bg=#e8f1ff</panel_attributes>
+    <additional_attributes />
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>185</x>
+      <y>135</y>
+      <w>170</w>
+      <h>72</h>
+    </coordinates>
+    <panel_attributes>lt=-&gt;
+fontsize=14</panel_attributes>
+    <additional_attributes>10.0;42.5;155.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>185</x>
+      <y>167</y>
+      <w>170</w>
+      <h>107</h>
+    </coordinates>
+    <panel_attributes>lt=-&gt;
+fontsize=14</panel_attributes>
+    <additional_attributes>10.0;10.0;155.0;77.5</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>185</x>
+      <y>167</y>
+      <w>170</w>
+      <h>207</h>
+    </coordinates>
+    <panel_attributes>lt=-&gt;
+fontsize=14</panel_attributes>
+    <additional_attributes>10.0;10.0;155.0;177.5</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>105</x>
+      <y>220</y>
+      <w>30</w>
+      <h>280</h>
+    </coordinates>
+    <panel_attributes>lt=-&gt;&gt;
+fontsize=14</panel_attributes>
+    <additional_attributes>10.0;250.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>105</x>
+      <y>565</y>
+      <w>30</w>
+      <h>345</h>
+    </coordinates>
+    <panel_attributes>lt=-&gt;&gt;
+fontsize=14</panel_attributes>
+    <additional_attributes>10.0;315.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>185</x>
+      <y>512</y>
+      <w>170</w>
+      <h>40</h>
+    </coordinates>
+    <panel_attributes>lt=-&gt;
+fontsize=14</panel_attributes>
+    <additional_attributes>10.0;10.0;155.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>185</x>
+      <y>512</y>
+      <w>170</w>
+      <h>235</h>
+    </coordinates>
+    <panel_attributes>lt=-&gt;
+fontsize=14</panel_attributes>
+    <additional_attributes>10.0;10.0;155.0;205.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>185</x>
+      <y>512</y>
+      <w>170</w>
+      <h>375</h>
+    </coordinates>
+    <panel_attributes>lt=-&gt;
+fontsize=14</panel_attributes>
+    <additional_attributes>10.0;10.0;155.0;345.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>185</x>
+      <y>380</y>
+      <w>780</w>
+      <h>150</h>
+    </coordinates>
+    <panel_attributes>lt=-&gt;
+fontsize=14</panel_attributes>
+    <additional_attributes>10.0;120.0;35.0;120.0;35.0;10.0;765.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>185</x>
+      <y>922</y>
+      <w>170</w>
+      <h>142</h>
+    </coordinates>
+    <panel_attributes>lt=-&gt;
+fontsize=14</panel_attributes>
+    <additional_attributes>10.0;10.0;155.0;112.5</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1310</x>
+      <y>317</y>
+      <w>205</w>
+      <h>105</h>
+    </coordinates>
+    <panel_attributes>lt=-&gt;
+fontsize=14</panel_attributes>
+    <additional_attributes>190.0;10.0;10.0;75.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1310</x>
+      <y>382</y>
+      <w>205</w>
+      <h>175</h>
+    </coordinates>
+    <panel_attributes>lt=-&gt;
+fontsize=14</panel_attributes>
+    <additional_attributes>190.0;145.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1300</x>
+      <y>885</y>
+      <w>200</w>
+      <h>67</h>
+    </coordinates>
+    <panel_attributes>lt=-&gt;
+fontsize=14</panel_attributes>
+    <additional_attributes>185.0;37.5;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1300</x>
+      <y>912</y>
+      <w>200</w>
+      <h>127</h>
+    </coordinates>
+    <panel_attributes>lt=-&gt;
+fontsize=14</panel_attributes>
+    <additional_attributes>185.0;10.0;10.0;97.5</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>185</x>
+      <y>190</y>
+      <w>750</w>
+      <h>1020</h>
+    </coordinates>
+    <panel_attributes>lt=-&gt;
+fontsize=14</panel_attributes>
+    <additional_attributes>10.0;10.0;45.0;10.0;45.0;990.0;735.0;990.0;735.0;950.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1300</x>
+      <y>1130</y>
+      <w>200</w>
+      <h>52</h>
+    </coordinates>
+    <panel_attributes>lt=.&gt;
+fontsize=14
+зовнішній перехід</panel_attributes>
+    <additional_attributes>10.0;10.0;185.0;22.5</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>670</x>
+      <y>512</y>
+      <w>215</w>
+      <h>40</h>
+    </coordinates>
+    <panel_attributes>lt=.&gt;
+fontsize=14
+&lt;&lt;extend&gt;&gt; [force=true]</panel_attributes>
+    <additional_attributes>200.0;10.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>670</x>
+      <y>707</y>
+      <w>245</w>
+      <h>47</h>
+    </coordinates>
+    <panel_attributes>lt=.&gt;
+fontsize=14
+&lt;&lt;include&gt;&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;230.0;17.5</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1080</x>
+      <y>755</y>
+      <w>50</w>
+      <h>130</h>
+    </coordinates>
+    <panel_attributes>lt=.&gt;
+fontsize=14
+&lt;&lt;include&gt;&gt;</panel_attributes>
+    <additional_attributes>35.0;100.0;10.0;10.0</additional_attributes>
+  </element>
+</diagram>
